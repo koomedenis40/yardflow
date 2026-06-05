@@ -10,6 +10,12 @@ import { TenantsModule } from './tenants/tenants.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { AuditModule } from './audit/audit.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { BuyersModule } from './buyers/buyers.module';
+import { PurchasesModule } from './purchases/purchases.module';
+import { SalesModule } from './sales/sales.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { CorrectionsModule } from './corrections/corrections.module';
 
 @Module({
   imports: [
@@ -25,6 +31,12 @@ import { AuditModule } from './audit/audit.module';
     UsersModule,
     CategoriesModule,
     AuditModule,
+    SuppliersModule,
+    BuyersModule,
+    PurchasesModule,
+    SalesModule,
+    InventoryModule,
+    CorrectionsModule,
   ],
   providers: [
     {

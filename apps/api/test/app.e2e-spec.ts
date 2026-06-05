@@ -84,7 +84,10 @@ describe('YardFlow API (e2e)', () => {
       .set('Authorization', `Bearer ${session.accessToken}`)
       .expect(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body).toHaveLength(12);
+    const seedCategories = res.body.filter(
+      (c: { name: string }) => !c.name.startsWith('E2E '),
+    );
+    expect(seedCategories).toHaveLength(12);
   });
 
   it('cashier can list categories', async () => {

@@ -20,6 +20,25 @@ enum UserTenantRole {
   cashier
 }
 
+enum PaymentStatus {
+  unpaid
+  partial
+  paid
+}
+
+enum CorrectableType {
+  PURCHASE
+  SALE
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  PURCHASE_CORRECTION
+  SALE_CORRECTION
+  STOCK_ADJUSTMENT
+}
+
 model Tenant {
   id            String       @id @default(uuid()) @db.Uuid
   name          String
@@ -35,6 +54,15 @@ model Tenant {
   userTenants UserTenant[]
   categories  ScrapCategory[]
   auditLogs   AuditLog[]
+  suppliers   Supplier[]
+  buyers      Buyer[]
+  purchases   Purchase[]
+  sales       Sale[]
+  stockBalances StockBalance[]
+  stockMovements StockMovement[]
+  corrections Correction[]
+  stockAdjustments StockAdjustment[]
+  ledgerEvents LedgerEvent[]
 
   @@map("tenants")
 }
@@ -96,10 +124,187 @@ model ScrapCategory {
   createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases     Purchase[]
+  sales         Sale[]
+  stockBalances StockBalance[]
+  stockMovements StockMovement[]
+  stockAdjustments StockAdjustment[]
 
   @@index([tenantId])
   @@map("scrap_categories")
+}
+
+model Supplier {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  name       String
+  phone      String?
+  notes      String?
+  balanceKes Decimal  @default(0) @map("balance_kes") @db.Decimal(14, 2)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+
+  @@index([tenantId])
+  @@index([tenantId, phone])
+  @@map("suppliers")
+}
+
+model Buyer {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  name       String
+  phone      String?
+  notes      String?
+  balanceKes Decimal  @default(0) @map("balance_kes") @db.Decimal(14, 2)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales  Sale[]
+
+  @@index([tenantId])
+  @@index([tenantId, phone])
+  @@map("buyers")
+}
+
+model Purchase {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  supplierId        String        @map("supplier_id") @db.Uuid
+  categoryId        String        @map("category_id") @db.Uuid
+  weightKg          Decimal       @map("weight_kg") @db.Decimal(12, 3)
+  pricePerKg        Decimal       @map("price_per_kg") @db.Decimal(14, 2)
+  totalValueKes     Decimal       @map("total_value_kes") @db.Decimal(14, 2)
+  paymentStatus     PaymentStatus @default(unpaid) @map("payment_status")
+  correctionApplied Boolean       @default(false) @map("correction_applied")
+  createdBy         String        @map("created_by") @db.Uuid
+  idempotencyKey    String        @map("idempotency_key")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier Supplier      @relation(fields: [supplierId], references: [id])
+  category ScrapCategory @relation(fields: [categoryId], references: [id])
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, supplierId])
+  @@map("purchases")
+}
+
+model Sale {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  buyerId           String        @map("buyer_id") @db.Uuid
+  categoryId        String        @map("category_id") @db.Uuid
+  weightKg          Decimal       @map("weight_kg") @db.Decimal(12, 3)
+  pricePerKg        Decimal       @map("price_per_kg") @db.Decimal(14, 2)
+  totalValueKes     Decimal       @map("total_value_kes") @db.Decimal(14, 2)
+  costPerKgAtSale   Decimal       @map("cost_per_kg_at_sale") @db.Decimal(14, 2)
+  totalCostKes      Decimal       @map("total_cost_kes") @db.Decimal(14, 2)
+  grossProfitKes    Decimal       @map("gross_profit_kes") @db.Decimal(14, 2)
+  paymentStatus     PaymentStatus @default(unpaid) @map("payment_status")
+  correctionApplied Boolean       @default(false) @map("correction_applied")
+  createdBy         String        @map("created_by") @db.Uuid
+  idempotencyKey    String        @map("idempotency_key")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  buyer    Buyer         @relation(fields: [buyerId], references: [id])
+  category ScrapCategory @relation(fields: [categoryId], references: [id])
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, buyerId])
+  @@map("sales")
+}
+
+model StockBalance {
+  tenantId         String   @map("tenant_id") @db.Uuid
+  categoryId       String   @map("category_id") @db.Uuid
+  weightKg         Decimal  @default(0) @map("weight_kg") @db.Decimal(12, 3)
+  averageCostPerKg Decimal  @default(0) @map("average_cost_per_kg") @db.Decimal(14, 2)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category ScrapCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, categoryId])
+  @@map("stock_balances")
+}
+
+model StockMovement {
+  id            String            @id @default(uuid()) @db.Uuid
+  tenantId      String            @map("tenant_id") @db.Uuid
+  categoryId    String            @map("category_id") @db.Uuid
+  movementType  StockMovementType @map("movement_type")
+  weightDeltaKg Decimal           @map("weight_delta_kg") @db.Decimal(12, 3)
+  valueDeltaKes Decimal           @default(0) @map("value_delta_kes") @db.Decimal(14, 2)
+  referenceType String            @map("reference_type")
+  referenceId   String            @map("reference_id") @db.Uuid
+  createdBy     String            @map("created_by") @db.Uuid
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category ScrapCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([tenantId, categoryId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("stock_movements")
+}
+
+model Correction {
+  id            String          @id @default(uuid()) @db.Uuid
+  tenantId      String          @map("tenant_id") @db.Uuid
+  targetType    CorrectableType @map("target_type")
+  targetId      String          @map("target_id") @db.Uuid
+  weightDeltaKg Decimal         @map("weight_delta_kg") @db.Decimal(12, 3)
+  valueDeltaKes Decimal         @default(0) @map("value_delta_kes") @db.Decimal(14, 2)
+  reason        String
+  createdBy     String          @map("created_by") @db.Uuid
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("corrections")
+}
+
+model StockAdjustment {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  categoryId    String   @map("category_id") @db.Uuid
+  weightDeltaKg Decimal  @map("weight_delta_kg") @db.Decimal(12, 3)
+  reason        String
+  createdBy     String   @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category ScrapCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("stock_adjustments")
+}
+
+model LedgerEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  eventType     String   @map("event_type")
+  payload       Json     @default("{}")
+  actorId       String?  @map("actor_id") @db.Uuid
+  referenceType String?  @map("reference_type")
+  referenceId   String?  @map("reference_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("ledger_events")
 }
 
 model AuditLog {
