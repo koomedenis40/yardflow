@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch, getFetchErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { PaymentStatusBadge } from '@/lib/badges';
-import { formatDate, formatMoney, formatWeight } from '@/lib/format';
+import { formatDate, formatMethod, formatMoney, formatWeight } from '@/lib/format';
 import { paginateClient } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DetailDrawer } from './detail-drawer';
@@ -233,19 +233,35 @@ export function LedgerWorkspace({ mode }: { mode: LedgerMode }) {
       >
         {selected && (
           <div className="drawer-sections">
-            <p>Total: {formatMoney(selected.totalValueKes)}</p>
-            <p>Paid: {formatMoney(selected.paidAmountKes ?? 0)}</p>
-            <p>Remaining: {formatMoney(selected.remainingKes ?? 0)}</p>
-            {mode === 'sale' && selected.grossProfitKes && (
-              <p>Profit: {formatMoney(selected.grossProfitKes)}</p>
-            )}
-            <PaymentStatusBadge status={selected.paymentStatus} />
-            <h4>Allocations</h4>
-            <ul className="drawer-list">
-              {selected.allocations?.map((a, i) => (
-                <li key={i}>{formatMoney(a.allocatedAmountKes)} · {a.sourceType}</li>
-              )) ?? <li>None</li>}
-            </ul>
+            <section>
+              <div className="drawer-status-row">
+                <h4>Settlement</h4>
+                <PaymentStatusBadge status={selected.paymentStatus} />
+              </div>
+              <dl className="drawer-stats">
+                <div><dt>Total</dt><dd>{formatMoney(selected.totalValueKes)}</dd></div>
+                <div><dt>Paid</dt><dd>{formatMoney(selected.paidAmountKes ?? 0)}</dd></div>
+                <div><dt>Remaining</dt><dd>{formatMoney(selected.remainingKes ?? 0)}</dd></div>
+                {mode === 'sale' && selected.grossProfitKes && (
+                  <div><dt>Profit</dt><dd>{formatMoney(selected.grossProfitKes)}</dd></div>
+                )}
+              </dl>
+            </section>
+            <section>
+              <h4>Allocations</h4>
+              {selected.allocations && selected.allocations.length > 0 ? (
+                <ul className="drawer-rows">
+                  {selected.allocations.map((a, i) => (
+                    <li key={i} className="drawer-row">
+                      <span className="drawer-row__primary">{formatMoney(a.allocatedAmountKes)}</span>
+                      <span className="drawer-row__meta">{formatMethod(a.sourceType)} · {formatDate(a.createdAt)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">No allocations yet</p>
+              )}
+            </section>
           </div>
         )}
       </DetailDrawer>

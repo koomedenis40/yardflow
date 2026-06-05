@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch, getFetchErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { PaymentStatusBadge } from '@/lib/badges';
-import { formatDate, formatMoney } from '@/lib/format';
+import { formatDayTime, formatMethod, formatMoney } from '@/lib/format';
 import { paginateClient } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DetailDrawer } from './detail-drawer';
@@ -214,28 +214,48 @@ export function PartyWorkspace({ mode, tenantSlug }: { mode: PartyMode; tenantSl
           <div className="drawer-sections">
             <section>
               <h4>Balances</h4>
-              <p>Owed / receivable: {formatMoney(selected.balanceKes)}</p>
-              {mode === 'supplier' && <p>Credit available: {formatMoney(selected.creditBalanceKes ?? 0)}</p>}
+              <dl className="drawer-stats">
+                <div>
+                  <dt>{mode === 'supplier' ? 'Owed' : 'Receivable'}</dt>
+                  <dd>{formatMoney(selected.balanceKes)}</dd>
+                </div>
+                {mode === 'supplier' && (
+                  <div>
+                    <dt>Credit available</dt>
+                    <dd>{formatMoney(selected.creditBalanceKes ?? 0)}</dd>
+                  </div>
+                )}
+              </dl>
             </section>
             <section>
-              <h4>Unpaid</h4>
-              <ul className="drawer-list">
-                {(mode === 'supplier' ? selected.unpaidPurchases : selected.unpaidSales)?.map((t) => (
-                  <li key={t.id}>
-                    {formatMoney(t.remainingKes)} remaining · <PaymentStatusBadge status={t.paymentStatus} />
-                  </li>
-                )) ?? <li>None</li>}
-              </ul>
+              <h4>Unpaid {mode === 'supplier' ? 'purchases' : 'sales'}</h4>
+              {(mode === 'supplier' ? selected.unpaidPurchases : selected.unpaidSales)?.length ? (
+                <ul className="drawer-rows">
+                  {(mode === 'supplier' ? selected.unpaidPurchases : selected.unpaidSales)?.map((t) => (
+                    <li key={t.id} className="drawer-row">
+                      <span className="drawer-row__primary">{formatMoney(t.remainingKes)} remaining</span>
+                      <PaymentStatusBadge status={t.paymentStatus} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">Nothing outstanding</p>
+              )}
             </section>
             <section>
               <h4>Recent payments</h4>
-              <ul className="drawer-list">
-                {selected.recentPayments?.map((p) => (
-                  <li key={p.id}>
-                    {formatMoney(p.amountKes)} · {p.paymentMethod} · {formatDate(p.createdAt)}
-                  </li>
-                ))}
-              </ul>
+              {selected.recentPayments?.length ? (
+                <ul className="drawer-rows">
+                  {selected.recentPayments.map((p) => (
+                    <li key={p.id} className="drawer-row">
+                      <span className="drawer-row__primary">{formatMoney(p.amountKes)}</span>
+                      <span className="drawer-row__meta">{formatMethod(p.paymentMethod)} · {formatDayTime(p.createdAt)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">No payments yet</p>
+              )}
             </section>
             {(mode === 'supplier' ? hasPermission('supplier_payment:create') : hasPermission('buyer_payment:create')) && (
               <section className="drawer-form">

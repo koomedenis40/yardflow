@@ -14,7 +14,15 @@ import {
 } from 'lucide-react';
 import { apiFetch, getFetchErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { formatDate, formatMoney, formatWeight, isTodayEat, startOfWeekEat } from '@/lib/format';
+import {
+  formatDate,
+  formatDayTime,
+  formatMethod,
+  formatMoney,
+  formatWeight,
+  isTodayEat,
+  startOfWeekEat,
+} from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 import { KpiGroup } from '@/components/ops/kpi-group';
 import { KpiLinkCard } from '@/components/ops/kpi-link-card';
@@ -29,8 +37,8 @@ export default function DashboardPage() {
   const [stock, setStock] = useState<Array<{ weightKg: string; category?: { name: string } }>>([]);
   const [purchases, setPurchases] = useState<Array<{ totalValueKes: string; createdAt: string; supplier?: { name: string } }>>([]);
   const [sales, setSales] = useState<Array<{ totalValueKes: string; createdAt: string; buyer?: { name: string } }>>([]);
-  const [supplierPayments, setSupplierPayments] = useState<Array<{ amountKes: string; createdAt: string }>>([]);
-  const [buyerPayments, setBuyerPayments] = useState<Array<{ amountKes: string; createdAt: string }>>([]);
+  const [supplierPayments, setSupplierPayments] = useState<Array<{ amountKes: string; createdAt: string; paymentMethod: string; supplier?: { name: string } }>>([]);
+  const [buyerPayments, setBuyerPayments] = useState<Array<{ amountKes: string; createdAt: string; paymentMethod: string; buyer?: { name: string } }>>([]);
   const [suppliers, setSuppliers] = useState<Array<{ name: string; balanceKes: string }>>([]);
 
   const load = useCallback(async () => {
@@ -97,13 +105,25 @@ export default function DashboardPage() {
     [stock],
   );
 
-  const recentPayments = useMemo(
-    () =>
-      [...supplierPayments, ...buyerPayments]
-        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-        .slice(0, 6),
-    [supplierPayments, buyerPayments],
-  );
+  const recentPayments = useMemo(() => {
+    const supplierRows = supplierPayments.map((p) => ({
+      kind: 'supplier' as const,
+      party: p.supplier?.name ?? 'Supplier',
+      amountKes: p.amountKes,
+      method: p.paymentMethod,
+      createdAt: p.createdAt,
+    }));
+    const buyerRows = buyerPayments.map((p) => ({
+      kind: 'buyer' as const,
+      party: p.buyer?.name ?? 'Buyer',
+      amountKes: p.amountKes,
+      method: p.paymentMethod,
+      createdAt: p.createdAt,
+    }));
+    return [...supplierRows, ...buyerRows]
+      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+      .slice(0, 6);
+  }, [supplierPayments, buyerPayments]);
 
   if (loading) return <div className="loading-shell">Loading command center…</div>;
 
@@ -184,14 +204,18 @@ export default function DashboardPage() {
             <h3 className="panel-card__title">Recent purchases</h3>
           </div>
           <div className="panel-card__body">
-            <ul className="activity-list">
-              {purchases.slice(0, 6).map((p, i) => (
-                <li key={i} className="activity-item">
-                  <span className="activity-item__primary">{p.supplier?.name ?? '—'}</span>
-                  <span className="activity-item__meta">{formatMoney(p.totalValueKes)} · {formatDate(p.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
+            {purchases.length === 0 ? (
+              <p className="muted">No purchases recorded yet</p>
+            ) : (
+              <ul className="activity-list">
+                {purchases.slice(0, 6).map((p, i) => (
+                  <li key={i} className="activity-item">
+                    <span className="activity-item__primary">{p.supplier?.name ?? '—'}</span>
+                    <span className="activity-item__meta">{formatMoney(p.totalValueKes)} · {formatDate(p.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
         <div className="panel-card">
@@ -199,14 +223,18 @@ export default function DashboardPage() {
             <h3 className="panel-card__title">Recent sales</h3>
           </div>
           <div className="panel-card__body">
-            <ul className="activity-list">
-              {sales.slice(0, 6).map((s, i) => (
-                <li key={i} className="activity-item">
-                  <span className="activity-item__primary">{s.buyer?.name ?? '—'}</span>
-                  <span className="activity-item__meta">{formatMoney(s.totalValueKes)} · {formatDate(s.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
+            {sales.length === 0 ? (
+              <p className="muted">No sales recorded yet</p>
+            ) : (
+              <ul className="activity-list">
+                {sales.slice(0, 6).map((s, i) => (
+                  <li key={i} className="activity-item">
+                    <span className="activity-item__primary">{s.buyer?.name ?? '—'}</span>
+                    <span className="activity-item__meta">{formatMoney(s.totalValueKes)} · {formatDate(s.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
         <div className="panel-card">
@@ -214,14 +242,23 @@ export default function DashboardPage() {
             <h3 className="panel-card__title">Recent payments</h3>
           </div>
           <div className="panel-card__body">
-            <ul className="activity-list">
-              {recentPayments.map((p, i) => (
-                <li key={i} className="activity-item">
-                  <span className="activity-item__primary">{formatMoney(p.amountKes)}</span>
-                  <span className="activity-item__meta">{formatDate(p.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
+            {recentPayments.length === 0 ? (
+              <p className="muted">No payments recorded yet</p>
+            ) : (
+              <ul className="activity-list">
+                {recentPayments.map((p, i) => (
+                  <li key={i} className="activity-item activity-item--stacked">
+                    <span className="activity-item__primary">
+                      {p.kind === 'supplier' ? 'Paid ' : 'Collected from '}
+                      {p.party}
+                    </span>
+                    <span className="activity-item__meta">
+                      {formatMoney(p.amountKes)} · {formatMethod(p.method)} · {formatDayTime(p.createdAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>

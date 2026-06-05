@@ -17,6 +17,7 @@ export class SupplierPaymentsService {
   list(user: AuthUser) {
     return this.prisma.supplierPayment.findMany({
       where: { tenantId: user.tenantId! },
+      include: { supplier: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });

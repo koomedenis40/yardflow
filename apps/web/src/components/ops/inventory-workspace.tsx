@@ -3,7 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch, getFetchErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { formatDate, formatMoney, formatWeight } from '@/lib/format';
+import { formatDayTime, formatMoney, formatWeight } from '@/lib/format';
+
+const MOVEMENT_LABELS: Record<string, string> = {
+  purchase: 'Purchase intake',
+  sale: 'Sale outflow',
+  purchase_correction: 'Purchase correction',
+  sale_correction: 'Sale correction',
+  stock_adjustment: 'Stock adjustment',
+};
+
+const formatMovementType = (t: string): string => MOVEMENT_LABELS[t] ?? t.replace(/_/g, ' ');
 import { paginateClient } from '@/lib/types';
 import { DetailDrawer } from './detail-drawer';
 import { OperationalTable, sortRows, type Column } from './operational-table';
@@ -162,17 +172,39 @@ export function InventoryWorkspace({ tenantSlug }: { tenantSlug: string }) {
       >
         {selected && (
           <div className="drawer-sections">
-            <p>On hand: {formatWeight(selected.weightKg)}</p>
-            <p>Avg cost: {formatMoney(selected.averageCostPerKg)}</p>
-            <p>Value: {formatMoney(Number(selected.weightKg) * Number(selected.averageCostPerKg))}</p>
-            <h4>Recent movements</h4>
-            <ul className="drawer-list">
-              {catMovements.slice(0, 15).map((m) => (
-                <li key={m.id}>
-                  {m.movementType} {formatWeight(m.weightDeltaKg)} · {formatDate(m.createdAt)}
-                </li>
-              ))}
-            </ul>
+            <section>
+              <h4>Stock position</h4>
+              <dl className="drawer-stats">
+                <div><dt>On hand</dt><dd>{formatWeight(selected.weightKg)}</dd></div>
+                <div><dt>Avg cost</dt><dd>{formatMoney(selected.averageCostPerKg)}</dd></div>
+                <div><dt>Est. value</dt><dd>{formatMoney(Number(selected.weightKg) * Number(selected.averageCostPerKg))}</dd></div>
+              </dl>
+            </section>
+            <section>
+              <h4>Recent movements</h4>
+              {catMovements.length ? (
+                <ul className="drawer-rows">
+                  {catMovements.slice(0, 15).map((m) => {
+                    const delta = Number(m.weightDeltaKg);
+                    return (
+                      <li key={m.id} className="drawer-row">
+                        <span className="drawer-row__primary">
+                          {formatMovementType(m.movementType)}
+                        </span>
+                        <span className="drawer-row__meta">
+                          <span className={delta >= 0 ? 'delta delta--in' : 'delta delta--out'}>
+                            {delta >= 0 ? '+' : ''}{formatWeight(m.weightDeltaKg)}
+                          </span>
+                          {' · '}{formatDayTime(m.createdAt)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="muted">No movements yet</p>
+              )}
+            </section>
           </div>
         )}
       </DetailDrawer>

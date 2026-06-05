@@ -21,6 +21,30 @@ export const isTodayEat = (value: string | Date): boolean => {
   return fmt(d) === fmt(now);
 };
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: 'Cash',
+  bank: 'Bank',
+  mobile_money_manual: 'Mobile money',
+  other_manual: 'Other',
+};
+
+export const formatMethod = (method: string | null | undefined): string =>
+  PAYMENT_METHOD_LABELS[method ?? ''] ?? (method ? method.replace(/_/g, ' ') : '—');
+
+export const formatDayTime = (value: string | Date): string => {
+  const d = new Date(value);
+  const time = d.toLocaleTimeString('en-KE', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+  if (isTodayEat(d)) return `Today ${time}`;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toLocaleDateString('en-CA', { timeZone: TZ }) ===
+      yesterday.toLocaleDateString('en-CA', { timeZone: TZ })) {
+    return `Yesterday ${time}`;
+  }
+  const day = d.toLocaleDateString('en-KE', { timeZone: TZ, day: 'numeric', month: 'short' });
+  return `${day} ${time}`;
+};
+
 export const startOfWeekEat = (): Date => {
   const now = new Date();
   const day = now.getDay();
