@@ -19,6 +19,10 @@ export class PurchasesService {
   list(user: AuthUser) {
     return this.prisma.purchase.findMany({
       where: { tenantId: user.tenantId! },
+      include: {
+        supplier: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });

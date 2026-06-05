@@ -21,6 +21,7 @@ export class InventoryService {
   listMovements(user: AuthUser) {
     return this.prisma.stockMovement.findMany({
       where: { tenantId: user.tenantId! },
+      include: { category: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });

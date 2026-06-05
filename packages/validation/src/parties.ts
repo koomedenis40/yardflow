@@ -19,3 +19,8 @@ export const createCategorySchema = z.object({
   sortOrder: z.number().int().nonnegative().optional(),
 });
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
+
+export const updateCategorySchema = createCategorySchema
+  .partial()
+  .extend({ isActive: z.boolean().optional() });
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
