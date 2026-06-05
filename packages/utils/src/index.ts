@@ -5,3 +5,4 @@ export * from './date';
 export * from './receipt';
 export * from './billing';
 export * from './fifo';
+export * from './slugify';

@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  trial
+  active
+  past_due
+  suspended
+  cancelled
+}
+
+enum UserTenantRole {
+  owner
+  cashier
+}
+
+model Tenant {
+  id            String       @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String       @unique
+  status        TenantStatus @default(trial)
+  timezone      String       @default("Africa/Nairobi")
+  currency      String       @default("KES")
+  receiptPrefix String       @map("receipt_prefix")
+  settings      Json         @default("{}")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  userTenants UserTenant[]
+  categories  ScrapCategory[]
+  auditLogs   AuditLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  fullName        String   @map("full_name")
+  email           String?  @unique
+  phone           String?
+  passwordHash    String   @map("password_hash")
+  isPlatformAdmin Boolean  @default(false) @map("is_platform_admin")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userTenants   UserTenant[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model UserTenant {
+  userId    String         @map("user_id") @db.Uuid
+  tenantId  String         @map("tenant_id") @db.Uuid
+  role      UserTenantRole
+  isActive  Boolean        @default(true) @map("is_active")
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tenantId])
+  @@map("user_tenants")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model ScrapCategory {
+  id                       String   @id @default(uuid()) @db.Uuid
+  tenantId                 String   @map("tenant_id") @db.Uuid
+  yardId                   String?  @map("yard_id") @db.Uuid
+  name                     String
+  defaultBuyingPricePerKg  Decimal  @default(0) @map("default_buying_price_per_kg") @db.Decimal(14, 2)
+  defaultSellingPricePerKg Decimal  @default(0) @map("default_selling_price_per_kg") @db.Decimal(14, 2)
+  isActive                 Boolean  @default(true) @map("is_active")
+  sortOrder                Int      @default(0) @map("sort_order")
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("scrap_categories")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String?  @map("tenant_id") @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  action       String
+  entityType   String   @map("entity_type")
+  entityId     String?  @map("entity_id") @db.Uuid
+  metadataJson Json     @default("{}") @map("metadata_json")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}

@@ -1,0 +1,20 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "../..",
+  "testMatch": ["<rootDir>/apps/api/test/**/*.e2e-spec.ts"],
+  "testEnvironment": "node",
+  "transform": {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/apps/api/tsconfig.json",
+        "diagnostics": false
+      }
+    ]
+  },
+  "moduleNameMapper": {
+    "^@yardflow/types$": "<rootDir>/packages/types/dist/index.js",
+    "^@yardflow/validation$": "<rootDir>/packages/validation/dist/index.js",
+    "^@yardflow/utils$": "<rootDir>/packages/utils/dist/index.js"
+  }
+}

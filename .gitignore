@@ -12,3 +12,6 @@ coverage
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 *.tsbuildinfo
+
+packages/*/src/*.js
+packages/*/src/*.js.map
