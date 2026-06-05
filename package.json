@@ -1,0 +1,26 @@
+{
+  "name": "yardflow",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:fresh": "pnpm --filter @yardflow/web run clean && turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @yardflow/api exec prisma migrate dev",
+    "db:seed": "pnpm --filter @yardflow/api run seed",
+    "db:reset": "pnpm --filter @yardflow/api exec prisma migrate reset --force"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

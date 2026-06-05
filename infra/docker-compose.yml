@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: yardflow-postgres
+    restart: unless-stopped
+    # Host 5434 — avoids local PostgreSQL on 5432/5433 (common on Windows dev machines).
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: yardflow
+      POSTGRES_PASSWORD: yardflow
+      POSTGRES_DB: yardflow
+    volumes:
+      - yardflow_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yardflow -d yardflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  yardflow_pg_data:
