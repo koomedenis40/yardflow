@@ -1,23 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AuthUser } from '@yardflow/types';
-import { LedgerTransactionService } from '../ledger/ledger-transaction.service';
 import { PaymentAllocationService } from '../ledger/payment-allocation.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class SalesService {
+export class BuyerPaymentsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ledger: LedgerTransactionService,
     private readonly payments: PaymentAllocationService,
   ) {}
 
   create(user: AuthUser, body: unknown) {
-    return this.ledger.createSale(user, body);
+    return this.payments.createBuyerPayment(user, body);
   }
 
   list(user: AuthUser) {
-    return this.prisma.sale.findMany({
+    return this.prisma.buyerPayment.findMany({
       where: { tenantId: user.tenantId! },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -25,12 +23,13 @@ export class SalesService {
   }
 
   async getById(user: AuthUser, id: string) {
-    const sale = await this.prisma.sale.findFirst({
+    const payment = await this.prisma.buyerPayment.findFirst({
       where: { id, tenantId: user.tenantId! },
+      include: { buyer: true },
     });
-    if (!sale) {
-      throw new NotFoundException('Sale not found');
+    if (!payment) {
+      throw new NotFoundException('Buyer payment not found');
     }
-    return this.payments.enrichSale(sale);
+    return this.payments.enrichBuyerPayment(payment);
   }
 }

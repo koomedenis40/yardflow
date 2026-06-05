@@ -4,28 +4,28 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/require-permissions.decorator';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { TenantMembershipGuard } from '../common/guards/tenant-membership.guard';
-import { BuyersService } from './buyers.service';
+import { BuyerPaymentsService } from './buyer-payments.service';
 
-@Controller('buyers')
+@Controller('buyer-payments')
 @UseGuards(TenantMembershipGuard, PermissionsGuard)
-export class BuyersController {
-  constructor(private readonly buyersService: BuyersService) {}
+export class BuyerPaymentsController {
+  constructor(private readonly buyerPaymentsService: BuyerPaymentsService) {}
+
+  @Post()
+  @RequirePermissions('buyer_payment:create')
+  create(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+    return this.buyerPaymentsService.create(user, body);
+  }
 
   @Get()
-  @RequirePermissions('buyer:view')
+  @RequirePermissions('payment:view')
   list(@CurrentUser() user: AuthUser) {
-    return this.buyersService.list(user);
+    return this.buyerPaymentsService.list(user);
   }
 
   @Get(':id')
-  @RequirePermissions('buyer:view')
+  @RequirePermissions('payment:view')
   getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.buyersService.getById(user, id);
-  }
-
-  @Post()
-  @RequirePermissions('buyer:create')
-  create(@CurrentUser() user: AuthUser, @Body() body: unknown) {
-    return this.buyersService.create(user, body);
+    return this.buyerPaymentsService.getById(user, id);
   }
 }

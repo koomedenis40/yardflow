@@ -17,3 +17,12 @@ export class CorrectionWouldBreakStockException extends UnprocessableEntityExcep
     });
   }
 }
+
+export class BuyerOverpaymentException extends UnprocessableEntityException {
+  constructor() {
+    super({
+      code: 'BUYER_OVERPAYMENT_NOT_ALLOWED',
+      message: 'Payment exceeds buyer outstanding receivable',
+    });
+  }
+}

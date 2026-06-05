@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AuthUser } from '@yardflow/types';
 import { LedgerTransactionService } from '../ledger/ledger-transaction.service';
+import { PaymentAllocationService } from '../ledger/payment-allocation.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class PurchasesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ledger: LedgerTransactionService,
+    private readonly payments: PaymentAllocationService,
   ) {}
 
   create(user: AuthUser, body: unknown) {
@@ -29,6 +31,6 @@ export class PurchasesService {
     if (!purchase) {
       throw new NotFoundException('Purchase not found');
     }
-    return purchase;
+    return this.payments.enrichPurchase(purchase);
   }
 }

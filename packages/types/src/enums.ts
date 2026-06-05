@@ -10,8 +10,20 @@ export type UserTenantRole = (typeof USER_TENANT_ROLE)[number];
 export const PAYMENT_STATUS = ['unpaid', 'partial', 'paid'] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUS)[number];
 
-export const PAYMENT_METHOD = ['cash', 'manual', 'mpesa_stk', 'mpesa_b2c'] as const;
+export const PAYMENT_METHOD = [
+  'cash',
+  'bank',
+  'mobile_money_manual',
+  'other_manual',
+] as const;
 export type PaymentMethod = (typeof PAYMENT_METHOD)[number];
+
+export const PAYMENT_SOURCE_TYPE = [
+  'supplier_payment',
+  'buyer_payment',
+  'supplier_credit_pool',
+] as const;
+export type PaymentSourceType = (typeof PAYMENT_SOURCE_TYPE)[number];
 
 /** Lifecycle state of a payment row (purchase_payments / sale_payments). */
 export const PAYMENT_STATE = ['pending', 'confirmed', 'failed', 'reversed'] as const;

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { PERMISSIONS } from '@yardflow/types';
 import type { AuthUser } from '@yardflow/types';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,6 +16,12 @@ export class SuppliersController {
   @RequirePermissions('supplier:view')
   list(@CurrentUser() user: AuthUser) {
     return this.suppliersService.list(user);
+  }
+
+  @Get(':id')
+  @RequirePermissions('supplier:view')
+  getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.suppliersService.getById(user, id);
   }
 
   @Post()

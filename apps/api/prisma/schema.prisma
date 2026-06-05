@@ -39,6 +39,31 @@ enum StockMovementType {
   STOCK_ADJUSTMENT
 }
 
+enum PaymentMethod {
+  cash
+  bank
+  mobile_money_manual
+  other_manual
+}
+
+enum PaymentRecordStatus {
+  pending
+  confirmed
+  failed
+  reversed
+}
+
+enum PaymentSourceType {
+  supplier_payment
+  buyer_payment
+  supplier_credit_pool
+}
+
+enum PaymentAllocationTargetType {
+  purchase
+  sale
+}
+
 model Tenant {
   id            String       @id @default(uuid()) @db.Uuid
   name          String
@@ -63,6 +88,9 @@ model Tenant {
   corrections Correction[]
   stockAdjustments StockAdjustment[]
   ledgerEvents LedgerEvent[]
+  supplierPayments SupplierPayment[]
+  buyerPayments BuyerPayment[]
+  paymentAllocations PaymentAllocation[]
 
   @@map("tenants")
 }
@@ -141,13 +169,15 @@ model Supplier {
   name       String
   phone      String?
   notes      String?
-  balanceKes Decimal  @default(0) @map("balance_kes") @db.Decimal(14, 2)
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  balanceKes        Decimal  @default(0) @map("balance_kes") @db.Decimal(14, 2)
+  creditBalanceKes  Decimal  @default(0) @map("credit_balance_kes") @db.Decimal(14, 2)
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  purchases Purchase[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases        Purchase[]
+  supplierPayments SupplierPayment[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -165,8 +195,9 @@ model Buyer {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sales  Sale[]
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales         Sale[]
+  buyerPayments BuyerPayment[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -305,6 +336,66 @@ model LedgerEvent {
 
   @@index([tenantId, createdAt(sort: Desc)])
   @@map("ledger_events")
+}
+
+model SupplierPayment {
+  id             String              @id @default(uuid()) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  supplierId     String              @map("supplier_id") @db.Uuid
+  amountKes      Decimal             @map("amount_kes") @db.Decimal(14, 2)
+  paymentMethod  PaymentMethod       @map("payment_method")
+  status         PaymentRecordStatus @default(confirmed)
+  notes          String?
+  createdBy      String              @map("created_by") @db.Uuid
+  idempotencyKey String              @map("idempotency_key")
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("supplier_payments")
+}
+
+model BuyerPayment {
+  id             String              @id @default(uuid()) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  buyerId        String              @map("buyer_id") @db.Uuid
+  amountKes      Decimal             @map("amount_kes") @db.Decimal(14, 2)
+  paymentMethod  PaymentMethod       @map("payment_method")
+  status         PaymentRecordStatus @default(confirmed)
+  notes          String?
+  createdBy      String              @map("created_by") @db.Uuid
+  idempotencyKey String              @map("idempotency_key")
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  buyer  Buyer  @relation(fields: [buyerId], references: [id])
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, buyerId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("buyer_payments")
+}
+
+model PaymentAllocation {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  tenantId           String                      @map("tenant_id") @db.Uuid
+  sourceType         PaymentSourceType           @map("source_type")
+  sourceId           String                      @map("source_id") @db.Uuid
+  targetType         PaymentAllocationTargetType @map("target_type")
+  targetId           String                      @map("target_id") @db.Uuid
+  allocatedAmountKes Decimal                     @map("allocated_amount_kes") @db.Decimal(14, 2)
+  createdAt          DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, targetType, targetId])
+  @@index([tenantId, sourceType, sourceId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("payment_allocations")
 }
 
 model AuditLog {

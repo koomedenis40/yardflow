@@ -1,11 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PaymentStatus } from '@prisma/client';
 import type { AuthUser } from '@yardflow/types';
 import { createBuyerSchema } from '@yardflow/validation';
+import { PaymentAllocationService } from '../ledger/payment-allocation.service';
+import { remainingKes, toNum } from '../ledger/ledger-math';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class BuyersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly payments: PaymentAllocationService,
+  ) {}
 
   list(user: AuthUser) {
     return this.prisma.buyer.findMany({
@@ -37,6 +43,40 @@ export class BuyersService {
     if (!buyer) {
       throw new NotFoundException('Buyer not found');
     }
-    return buyer;
+
+    const [unpaidSales, recentPayments] = await Promise.all([
+      this.prisma.sale.findMany({
+        where: {
+          tenantId: user.tenantId!,
+          buyerId: id,
+          paymentStatus: { in: [PaymentStatus.unpaid, PaymentStatus.partial] },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 20,
+      }),
+      this.prisma.buyerPayment.findMany({
+        where: { tenantId: user.tenantId!, buyerId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+
+    const unpaidSalesEnriched = await Promise.all(
+      unpaidSales.map(async (sale) => {
+        const paidAmountKes = await this.payments.getPaidAmountForSale(sale.id);
+        return {
+          ...sale,
+          paidAmountKes,
+          remainingKes: remainingKes(toNum(sale.totalValueKes), paidAmountKes),
+        };
+      }),
+    );
+
+    return {
+      ...buyer,
+      balanceKes: toNum(buyer.balanceKes),
+      unpaidSales: unpaidSalesEnriched,
+      recentPayments,
+    };
   }
 }

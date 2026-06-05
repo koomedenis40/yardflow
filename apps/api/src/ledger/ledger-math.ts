@@ -35,3 +35,21 @@ export const calcSaleProfit = (
 
 export const projectedStockKg = (currentKg: number, deltaKg: number): number =>
   roundWeight(currentKg + deltaKg);
+
+export const derivePaymentStatus = (
+  totalValueKes: number,
+  paidAmountKes: number,
+): 'unpaid' | 'partial' | 'paid' => {
+  const paid = roundMoney(paidAmountKes);
+  const total = roundMoney(totalValueKes);
+  if (paid <= 0) {
+    return 'unpaid';
+  }
+  if (paid >= total) {
+    return 'paid';
+  }
+  return 'partial';
+};
+
+export const remainingKes = (totalValueKes: number, paidAmountKes: number): number =>
+  Math.max(0, roundMoney(totalValueKes - paidAmountKes));

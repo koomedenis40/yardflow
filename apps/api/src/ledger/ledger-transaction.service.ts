@@ -24,6 +24,7 @@ import {
   StockInsufficientException,
 } from './exceptions';
 import { LedgerEventsService } from './ledger-events.service';
+import { PaymentAllocationService } from './payment-allocation.service';
 import {
   calcPurchaseTotal,
   calcSaleProfit,
@@ -49,6 +50,7 @@ export class LedgerTransactionService {
     private readonly prisma: PrismaService,
     private readonly ledgerEvents: LedgerEventsService,
     private readonly audit: AuditService,
+    private readonly payments: PaymentAllocationService,
   ) {}
 
   async createPurchase(user: AuthUser, body: unknown) {
@@ -106,6 +108,13 @@ export class LedgerTransactionService {
         data: { balanceKes: { increment: totalValueKes } },
       });
 
+      await this.payments.applySupplierCreditOnPurchase(tx, {
+        tenantId,
+        supplierId: input.supplierId,
+        purchaseId: purchase.id,
+        actorId: user.userId,
+      });
+
       await this.recordMovement(tx, {
         tenantId,
         categoryId: input.categoryId,
@@ -115,6 +124,10 @@ export class LedgerTransactionService {
         referenceType: 'purchase',
         referenceId: purchase.id,
         createdBy: user.userId,
+      });
+
+      const refreshedPurchase = await tx.purchase.findUniqueOrThrow({
+        where: { id: purchase.id },
       });
 
       await this.ledgerEvents.emit(tx, {
@@ -139,7 +152,7 @@ export class LedgerTransactionService {
         entityId: purchase.id,
       });
 
-      return purchase;
+      return refreshedPurchase;
     }, LEDGER_TRANSACTION_OPTIONS);
   }
 

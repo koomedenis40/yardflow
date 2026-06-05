@@ -16,6 +16,9 @@ import { PurchasesModule } from './purchases/purchases.module';
 import { SalesModule } from './sales/sales.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { CorrectionsModule } from './corrections/corrections.module';
+import { SupplierPaymentsModule } from './supplier-payments/supplier-payments.module';
+import { BuyerPaymentsModule } from './buyer-payments/buyer-payments.module';
+import { BalancesModule } from './balances/balances.module';
 
 @Module({
   imports: [
@@ -37,6 +40,9 @@ import { CorrectionsModule } from './corrections/corrections.module';
     SalesModule,
     InventoryModule,
     CorrectionsModule,
+    SupplierPaymentsModule,
+    BuyerPaymentsModule,
+    BalancesModule,
   ],
   providers: [
     {

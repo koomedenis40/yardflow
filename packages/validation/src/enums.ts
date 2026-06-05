@@ -14,5 +14,5 @@ export const correctableTypeSchema = z.enum(CORRECTABLE_TYPE);
 export const tenantStatusSchema = z.enum(TENANT_STATUS);
 export const userTenantRoleSchema = z.enum(USER_TENANT_ROLE);
 
-/** Manual (non-M-Pesa) methods confirm immediately; M-Pesa methods are async/pending. */
-export const manualPaymentMethodSchema = z.enum(['cash', 'manual']);
+/** R4 manual methods confirm immediately. */
+export const manualPaymentMethodSchema = paymentMethodSchema;

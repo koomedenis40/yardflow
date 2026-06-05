@@ -116,3 +116,45 @@ export function stockForCategory(
   const row = balances.find((b) => b.categoryId === categoryId);
   return row ? Number(row.weightKg) : 0;
 }
+
+export function createSupplierPayment(
+  app: INestApplication,
+  token: string,
+  params: {
+    supplierId: string;
+    amountKes: number;
+    paymentMethod?: string;
+    purchaseId?: string;
+    idempotencyKey?: string;
+  },
+) {
+  return request(app.getHttpServer())
+    .post('/v1/supplier-payments')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      paymentMethod: 'cash',
+      ...params,
+      idempotencyKey: params.idempotencyKey ?? randomUUID(),
+    });
+}
+
+export function createBuyerPayment(
+  app: INestApplication,
+  token: string,
+  params: {
+    buyerId: string;
+    amountKes: number;
+    paymentMethod?: string;
+    saleId?: string;
+    idempotencyKey?: string;
+  },
+) {
+  return request(app.getHttpServer())
+    .post('/v1/buyer-payments')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      paymentMethod: 'cash',
+      ...params,
+      idempotencyKey: params.idempotencyKey ?? randomUUID(),
+    });
+}
