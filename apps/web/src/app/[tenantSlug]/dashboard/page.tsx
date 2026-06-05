@@ -3,16 +3,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Banknote,
+  Package,
+  Scale,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react';
 import { apiFetch, getFetchErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { formatDate, formatMoney, formatWeight, isTodayEat, startOfWeekEat } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 import { KpiGroup } from '@/components/ops/kpi-group';
 import { KpiLinkCard } from '@/components/ops/kpi-link-card';
 import { TrendBars } from '@/components/ops/trend-bars';
 
 export default function DashboardPage() {
   const tenantSlug = useParams().tenantSlug as string;
-  const { accessToken, isAuthReady } = useAuth();
+  const { accessToken, isAuthReady, hasPermission } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({ supplierOwedKes: 0, supplierCreditKes: 0, buyerReceivableKes: 0 });
@@ -87,23 +97,73 @@ export default function DashboardPage() {
     [stock],
   );
 
+  const recentPayments = useMemo(
+    () =>
+      [...supplierPayments, ...buyerPayments]
+        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+        .slice(0, 6),
+    [supplierPayments, buyerPayments],
+  );
+
   if (loading) return <div className="loading-shell">Loading command center…</div>;
 
   return (
     <div className="dashboard-sections">
       {error && <p className="field-error">{error}</p>}
 
-      <KpiGroup title="Operations">
-        <KpiLinkCard href={`/${tenantSlug}/inventory`} label="Total stock" value={formatWeight(totalStock)} tone="featured" />
-        <KpiLinkCard href={`/${tenantSlug}/purchases`} label="Intake today" value={formatMoney(intakeToday)} tone="green" />
-        <KpiLinkCard href={`/${tenantSlug}/sales`} label="Sales today" value={formatMoney(salesToday)} tone="blue" />
-      </KpiGroup>
+      <section className="dashboard-hero-row" aria-label="Operations overview">
+        <KpiLinkCard
+          href={`/${tenantSlug}/inventory`}
+          label="Total stock on hand"
+          value={formatWeight(totalStock)}
+          hint="Live inventory across all categories"
+          tone="featured"
+          icon={Package}
+        />
+        <div className="dashboard-hero-stack">
+          <KpiLinkCard
+            href={`/${tenantSlug}/purchases`}
+            label="Intake today"
+            value={formatMoney(intakeToday)}
+            tone="green"
+            icon={ArrowDownToLine}
+          />
+          <KpiLinkCard
+            href={`/${tenantSlug}/sales`}
+            label="Sales today"
+            value={formatMoney(salesToday)}
+            tone="blue"
+            icon={ArrowUpFromLine}
+          />
+        </div>
+        <div className="dashboard-quick-panel">
+          <h3 className="dashboard-quick-panel__title">Quick actions</h3>
+          {hasPermission('purchase:create') && (
+            <Link href={`/${tenantSlug}/purchases`} className="quick-action quick-action--green">
+              <Icon icon={ArrowDownToLine} size={18} />
+              Record purchase
+            </Link>
+          )}
+          {hasPermission('sale:create') && (
+            <Link href={`/${tenantSlug}/sales`} className="quick-action quick-action--blue">
+              <Icon icon={ArrowUpFromLine} size={18} />
+              Record sale
+            </Link>
+          )}
+          {hasPermission('payment:view') && (
+            <Link href={`/${tenantSlug}/balances`} className="quick-action quick-action--neutral">
+              <Icon icon={Scale} size={18} />
+              View balances
+            </Link>
+          )}
+        </div>
+      </section>
 
       <KpiGroup title="Financial settlement">
-        <KpiLinkCard href={`/${tenantSlug}/balances`} label="Supplier owed" value={formatMoney(summary.supplierOwedKes)} tone="amber" />
-        <KpiLinkCard href={`/${tenantSlug}/balances`} label="Buyer receivable" value={formatMoney(summary.buyerReceivableKes)} tone="blue" />
-        <KpiLinkCard href={`/${tenantSlug}/suppliers`} label="Paid today" value={formatMoney(paidToday)} tone="green" />
-        <KpiLinkCard href={`/${tenantSlug}/buyers`} label="Collected today" value={formatMoney(collectedToday)} tone="blue" />
+        <KpiLinkCard href={`/${tenantSlug}/balances`} label="Supplier owed" value={formatMoney(summary.supplierOwedKes)} tone="amber" icon={Wallet} />
+        <KpiLinkCard href={`/${tenantSlug}/balances`} label="Buyer receivable" value={formatMoney(summary.buyerReceivableKes)} tone="blue" icon={TrendingUp} />
+        <KpiLinkCard href={`/${tenantSlug}/suppliers`} label="Paid today" value={formatMoney(paidToday)} tone="green" icon={Banknote} />
+        <KpiLinkCard href={`/${tenantSlug}/buyers`} label="Collected today" value={formatMoney(collectedToday)} tone="blue" icon={Banknote} />
       </KpiGroup>
 
       <section className="intel-grid">
@@ -112,39 +172,57 @@ export default function DashboardPage() {
           <p className="intel-card__value">
             {largestOutstanding ? `${largestOutstanding.name} · ${formatMoney(largestOutstanding.balanceKes)}` : 'All clear'}
           </p>
-          <Link href={`/${tenantSlug}/suppliers`} className="intel-card__link">View suppliers</Link>
+          <Link href={`/${tenantSlug}/suppliers`} className="intel-card__link">View suppliers →</Link>
         </div>
         <TrendBars label="Weekly intake (value)" values={weeklyIntake} formatValue={(n) => formatMoney(n)} />
-        <TrendBars label="Weekly sales" values={weeklySales} formatValue={(n) => formatMoney(n)} />
+        <TrendBars label="Weekly sales" values={weeklySales} formatValue={(n) => formatMoney(n)} variant="blue" />
       </section>
 
       <section className="activity-grid">
-        <div className="activity-card">
-          <h3>Recent purchases</h3>
-          <ul>
-            {purchases.slice(0, 6).map((p, i) => (
-              <li key={i}>{p.supplier?.name ?? '—'} · {formatMoney(p.totalValueKes)} · {formatDate(p.createdAt)}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="activity-card">
-          <h3>Recent sales</h3>
-          <ul>
-            {sales.slice(0, 6).map((s, i) => (
-              <li key={i}>{s.buyer?.name ?? '—'} · {formatMoney(s.totalValueKes)} · {formatDate(s.createdAt)}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="activity-card">
-          <h3>Recent payments</h3>
-          <ul>
-            {[...supplierPayments, ...buyerPayments]
-              .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-              .slice(0, 6)
-              .map((p, i) => (
-                <li key={i}>{formatMoney(p.amountKes)} · {formatDate(p.createdAt)}</li>
+        <div className="panel-card">
+          <div className="panel-card__header">
+            <h3 className="panel-card__title">Recent purchases</h3>
+          </div>
+          <div className="panel-card__body">
+            <ul className="activity-list">
+              {purchases.slice(0, 6).map((p, i) => (
+                <li key={i} className="activity-item">
+                  <span className="activity-item__primary">{p.supplier?.name ?? '—'}</span>
+                  <span className="activity-item__meta">{formatMoney(p.totalValueKes)} · {formatDate(p.createdAt)}</span>
+                </li>
               ))}
-          </ul>
+            </ul>
+          </div>
+        </div>
+        <div className="panel-card">
+          <div className="panel-card__header">
+            <h3 className="panel-card__title">Recent sales</h3>
+          </div>
+          <div className="panel-card__body">
+            <ul className="activity-list">
+              {sales.slice(0, 6).map((s, i) => (
+                <li key={i} className="activity-item">
+                  <span className="activity-item__primary">{s.buyer?.name ?? '—'}</span>
+                  <span className="activity-item__meta">{formatMoney(s.totalValueKes)} · {formatDate(s.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="panel-card">
+          <div className="panel-card__header">
+            <h3 className="panel-card__title">Recent payments</h3>
+          </div>
+          <div className="panel-card__body">
+            <ul className="activity-list">
+              {recentPayments.map((p, i) => (
+                <li key={i} className="activity-item">
+                  <span className="activity-item__primary">{formatMoney(p.amountKes)}</span>
+                  <span className="activity-item__meta">{formatDate(p.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 

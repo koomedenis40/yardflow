@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ArrowRight, Package } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
@@ -40,45 +42,62 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-panel">
-        <h1 className="login-panel__title">YardFlow</h1>
+        <div className="login-panel__brand">
+          <span className="login-panel__logo">
+            <Icon icon={Package} size={20} strokeWidth={2} />
+          </span>
+          <span className="sidebar__logo">YardFlow</span>
+        </div>
+        <h1 className="login-panel__title">Log in to YardFlow</h1>
         <p className="login-panel__lead">Operational ledger for scrap yards</p>
         <form className="login-form" onSubmit={onSubmit}>
-          <label className="field">
+          <label className="login-field">
             <span>Email</span>
             <input
-              className="field-input"
+              className="login-field__input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
             />
           </label>
-          <label className="field">
+          <label className="login-field">
             <span>Password</span>
             <input
-              className="field-input"
+              className="login-field__input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
             />
           </label>
-          <label className="field">
+          <label className="login-field">
             <span>Yard slug</span>
             <input
-              className="field-input"
+              className="login-field__input"
               value={tenantSlug}
               onChange={(e) => setTenantSlug(e.target.value)}
             />
           </label>
           {error && <p className="field-error">{error}</p>}
-          <Button variant="primary" disabled={submitting} type="submit">
-            {submitting ? 'Signing in…' : 'Sign in'}
+          <Button variant="primary" disabled={submitting} type="submit" style={{ width: '100%', marginTop: 8 }}>
+            {submitting ? 'Signing in…' : (
+              <>
+                Continue
+                <Icon icon={ArrowRight} size={16} />
+              </>
+            )}
           </Button>
         </form>
       </div>
       <div className="login-visual" aria-hidden>
         <div className="login-visual__grid" />
-        <p className="login-visual__tag">Industrial · Calm · High-trust</p>
+        <div className="login-visual__accent" />
+        <div className="login-visual__shape login-visual__shape--1" />
+        <div className="login-visual__shape login-visual__shape--2" />
+        <div className="login-visual__shape login-visual__shape--3" />
+        <p className="login-visual__tag">
+          Industrial operations · Calm control · High-trust ledger
+        </p>
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { SEARCH_SCOPES, type SearchScope } from '@/lib/search-types';
 
 export function GlobalSearch({ tenantSlug }: { tenantSlug: string }) {
@@ -21,14 +23,17 @@ export function GlobalSearch({ tenantSlug }: { tenantSlug: string }) {
 
   return (
     <div className="global-search" data-tenant={tenantSlug}>
-      <input
-        ref={inputRef}
-        className="global-search__input"
-        placeholder="Search operations… (Ctrl+K)"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        aria-label="Global search"
-      />
+      <div className="global-search__wrap">
+        <Icon icon={Search} size={16} className="global-search__icon" />
+        <input
+          ref={inputRef}
+          className="global-search__input"
+          placeholder="Search operations…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Global search"
+        />
+      </div>
       <div className="global-search__scopes" role="tablist">
         {SEARCH_SCOPES.map((s) => (
           <button

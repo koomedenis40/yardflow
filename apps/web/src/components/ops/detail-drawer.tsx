@@ -1,6 +1,8 @@
 'use client';
 
+import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Icon } from '@/components/ui/icon';
 
 interface DetailDrawerProps {
   open: boolean;
@@ -26,7 +28,7 @@ export function DetailDrawer({ open, title, subtitle, onClose, children }: Detai
             {subtitle && <p className="detail-drawer__subtitle">{subtitle}</p>}
           </div>
           <button className="btn btn--ghost btn--compact" onClick={onClose} aria-label="Close">
-            ✕
+            <Icon icon={X} size={16} />
           </button>
         </header>
         <div className="detail-drawer__body">{children}</div>

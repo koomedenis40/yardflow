@@ -4,12 +4,18 @@ interface TrendBarsProps {
   label: string;
   values: number[];
   formatValue?: (n: number) => string;
+  variant?: 'green' | 'blue';
 }
 
-export function TrendBars({ label, values, formatValue = (n) => String(n) }: TrendBarsProps) {
+export function TrendBars({
+  label,
+  values,
+  formatValue = (n) => String(n),
+  variant = 'green',
+}: TrendBarsProps) {
   const max = Math.max(...values, 1);
   return (
-    <div className="trend-bars">
+    <div className={`trend-bars${variant === 'blue' ? ' trend-bars--blue' : ''}`}>
       <span className="trend-bars__label">{label}</span>
       <div className="trend-bars__chart" role="img" aria-label={label}>
         {values.map((v, i) => (

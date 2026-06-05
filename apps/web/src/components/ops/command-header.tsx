@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Bell, ChevronDown, Plus } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { Icon } from '@/components/ui/icon';
 import { GlobalSearch } from './global-search';
 
 interface CommandHeaderProps {
@@ -27,8 +29,8 @@ export function CommandHeader({ title, subtitle, tenantSlug }: CommandHeaderProp
       </div>
       <div className="command-header__right">
         <button type="button" className="command-header__icon-btn" aria-label="Notifications">
+          <Icon icon={Bell} size={18} />
           <span className="command-header__dot" />
-          🔔
         </button>
         <div className="command-header__dropdown">
           <button
@@ -36,7 +38,9 @@ export function CommandHeader({ title, subtitle, tenantSlug }: CommandHeaderProp
             className="btn btn--primary btn--compact"
             onClick={() => setActionsOpen((v) => !v)}
           >
-            Quick actions ▾
+            <Icon icon={Plus} size={16} />
+            Quick actions
+            <Icon icon={ChevronDown} size={14} />
           </button>
           {actionsOpen && (
             <div className="command-header__menu">
@@ -63,6 +67,7 @@ export function CommandHeader({ title, subtitle, tenantSlug }: CommandHeaderProp
             type="button"
             className="command-header__user"
             onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Account menu"
           >
             <span className="command-header__avatar">
               {session?.user.fullName?.charAt(0) ?? 'U'}
@@ -73,7 +78,7 @@ export function CommandHeader({ title, subtitle, tenantSlug }: CommandHeaderProp
               <p className="command-header__user-name">{session?.user.fullName}</p>
               <p className="command-header__user-email">{session?.user.email}</p>
               <p className="command-header__user-role">{session?.user.role}</p>
-              <button type="button" className="btn btn--ghost" onClick={logout}>
+              <button type="button" className="btn btn--ghost btn--compact" onClick={logout}>
                 Sign out
               </button>
             </div>

@@ -1,5 +1,8 @@
 'use client';
 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
+
 interface PaginationBarProps {
   page: number;
   pageSize: number;
@@ -20,7 +23,9 @@ export function PaginationBar({
   return (
     <div className="pagination-bar" role="navigation" aria-label="Pagination">
       <span className="pagination-bar__meta">
-        {total === 0 ? 'No rows' : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`}
+        {total === 0
+          ? 'No rows'
+          : `Result ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`}
       </span>
       <div className="pagination-bar__controls">
         {onPageSizeChange && (
@@ -41,8 +46,9 @@ export function PaginationBar({
           className="btn btn--ghost btn--compact"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
+          aria-label="Previous page"
         >
-          Prev
+          <Icon icon={ChevronLeft} size={16} />
         </button>
         <span className="pagination-bar__page">
           {page} / {totalPages}
@@ -51,8 +57,9 @@ export function PaginationBar({
           className="btn btn--ghost btn--compact"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
+          aria-label="Next page"
         >
-          Next
+          <Icon icon={ChevronRight} size={16} />
         </button>
       </div>
     </div>

@@ -1,6 +1,8 @@
 'use client';
 
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Icon } from '@/components/ui/icon';
 
 export interface Column<T> {
   key: string;
@@ -61,7 +63,12 @@ export function OperationalTable<T>({
                     onClick={() => onSort(col.key)}
                   >
                     {col.header}
-                    {sortKey === col.key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                    {sortKey === col.key && (
+                      <Icon
+                        icon={sortDir === 'asc' ? ChevronUp : ChevronDown}
+                        size={14}
+                      />
+                    )}
                   </button>
                 ) : (
                   col.header
