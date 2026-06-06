@@ -207,8 +207,27 @@ export function PartyWorkspace({ mode, tenantSlug }: { mode: PartyMode; tenantSl
       <DetailDrawer
         open={!!selected}
         title={selected?.name ?? ''}
-        subtitle={mode === 'supplier' ? 'Supplier workspace' : 'Buyer workspace'}
+        subtitle={mode === 'supplier' ? 'Supplier' : 'Buyer'}
         onClose={() => setSelected(null)}
+        footer={
+          selected && (mode === 'supplier' ? hasPermission('supplier_payment:create') : hasPermission('buyer_payment:create')) ? (
+            <>
+              <h4>{mode === 'supplier' ? 'Pay supplier' : 'Receive payment'}</h4>
+              <div className="drawer-form">
+                <input
+                  className="field-input"
+                  type="number"
+                  placeholder="Amount KES"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                />
+                <Button variant="primary" disabled={paying} onClick={submitPayment}>
+                  {paying ? 'Processing…' : 'Submit payment'}
+                </Button>
+              </div>
+            </>
+          ) : undefined
+        }
       >
         {selected && (
           <div className="drawer-sections">
@@ -257,21 +276,6 @@ export function PartyWorkspace({ mode, tenantSlug }: { mode: PartyMode; tenantSl
                 <p className="muted">No payments yet</p>
               )}
             </section>
-            {(mode === 'supplier' ? hasPermission('supplier_payment:create') : hasPermission('buyer_payment:create')) && (
-              <section className="drawer-form">
-                <h4>{mode === 'supplier' ? 'Pay supplier' : 'Receive payment'}</h4>
-                <input
-                  className="field-input"
-                  type="number"
-                  placeholder="Amount KES"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                />
-                <Button variant="primary" disabled={paying} onClick={submitPayment}>
-                  {paying ? 'Processing…' : 'Submit payment'}
-                </Button>
-              </section>
-            )}
           </div>
         )}
       </DetailDrawer>

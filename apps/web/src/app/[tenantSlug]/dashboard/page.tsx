@@ -24,7 +24,6 @@ import {
   startOfWeekEat,
 } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
-import { KpiGroup } from '@/components/ops/kpi-group';
 import { KpiLinkCard } from '@/components/ops/kpi-link-card';
 import { TrendBars } from '@/components/ops/trend-bars';
 
@@ -131,6 +130,7 @@ export default function DashboardPage() {
     <div className="dashboard-sections">
       {error && <p className="field-error">{error}</p>}
 
+      {/* Row 1: Featured stock | Intake | Sales | Quick actions */}
       <section className="dashboard-hero-row" aria-label="Operations overview">
         <KpiLinkCard
           href={`/${tenantSlug}/inventory`}
@@ -140,22 +140,20 @@ export default function DashboardPage() {
           tone="featured"
           icon={Package}
         />
-        <div className="dashboard-hero-stack">
-          <KpiLinkCard
-            href={`/${tenantSlug}/purchases`}
-            label="Intake today"
-            value={formatMoney(intakeToday)}
-            tone="green"
-            icon={ArrowDownToLine}
-          />
-          <KpiLinkCard
-            href={`/${tenantSlug}/sales`}
-            label="Sales today"
-            value={formatMoney(salesToday)}
-            tone="blue"
-            icon={ArrowUpFromLine}
-          />
-        </div>
+        <KpiLinkCard
+          href={`/${tenantSlug}/purchases`}
+          label="Intake today"
+          value={formatMoney(intakeToday)}
+          tone="green"
+          icon={ArrowDownToLine}
+        />
+        <KpiLinkCard
+          href={`/${tenantSlug}/sales`}
+          label="Sales today"
+          value={formatMoney(salesToday)}
+          tone="blue"
+          icon={ArrowUpFromLine}
+        />
         <div className="dashboard-quick-panel">
           <h3 className="dashboard-quick-panel__title">Quick actions</h3>
           {hasPermission('purchase:create') && (
@@ -179,12 +177,13 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <KpiGroup title="Financial settlement">
+      {/* Row 2: Financial settlement — 4 KPIs flat */}
+      <section className="dashboard-financial-row" aria-label="Financial settlement">
         <KpiLinkCard href={`/${tenantSlug}/balances`} label="Supplier owed" value={formatMoney(summary.supplierOwedKes)} tone="amber" icon={Wallet} />
         <KpiLinkCard href={`/${tenantSlug}/balances`} label="Buyer receivable" value={formatMoney(summary.buyerReceivableKes)} tone="blue" icon={TrendingUp} />
         <KpiLinkCard href={`/${tenantSlug}/suppliers`} label="Paid today" value={formatMoney(paidToday)} tone="green" icon={Banknote} />
         <KpiLinkCard href={`/${tenantSlug}/buyers`} label="Collected today" value={formatMoney(collectedToday)} tone="blue" icon={Banknote} />
-      </KpiGroup>
+      </section>
 
       <section className="intel-grid">
         <div className="intel-card">

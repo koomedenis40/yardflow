@@ -10,9 +10,11 @@ interface DetailDrawerProps {
   subtitle?: string;
   onClose: () => void;
   children: ReactNode;
+  /** Sticky footer — use for action forms (pay, collect) so they stay visible while body scrolls. */
+  footer?: ReactNode;
 }
 
-export function DetailDrawer({ open, title, subtitle, onClose, children }: DetailDrawerProps) {
+export function DetailDrawer({ open, title, subtitle, onClose, children, footer }: DetailDrawerProps) {
   if (!open) return null;
   return (
     <div className="drawer-overlay" role="presentation" onClick={onClose}>
@@ -32,6 +34,7 @@ export function DetailDrawer({ open, title, subtitle, onClose, children }: Detai
           </button>
         </header>
         <div className="detail-drawer__body">{children}</div>
+        {footer && <div className="detail-drawer__footer">{footer}</div>}
       </aside>
     </div>
   );

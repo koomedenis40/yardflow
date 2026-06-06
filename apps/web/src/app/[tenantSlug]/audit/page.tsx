@@ -49,25 +49,27 @@ export default function AuditPage() {
   }
 
   return (
-    <div>
+    <div className="workspace">
       {error && <p className="field-error">{error}</p>}
-      <OperationalTable
-        columns={columns}
-        rows={paged.items}
-        rowKey={(r) => r.id}
-        emptyMessage="No audit entries"
-      />
-      <PaginationBar
-        page={paged.meta.page}
-        pageSize={pageSize}
-        total={paged.meta.total}
-        totalPages={paged.meta.totalPages}
-        onPageChange={setPage}
-        onPageSizeChange={(s) => {
-          setPageSize(s);
-          setPage(1);
-        }}
-      />
+      <div className="workspace__primary">
+        <OperationalTable
+          columns={columns}
+          rows={paged.items}
+          rowKey={(r) => r.id}
+          emptyMessage="No audit entries"
+        />
+        <PaginationBar
+          page={paged.meta.page}
+          pageSize={pageSize}
+          total={paged.meta.total}
+          totalPages={paged.meta.totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            setPage(1);
+          }}
+        />
+      </div>
     </div>
   );
 }
