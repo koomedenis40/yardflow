@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
@@ -12,9 +13,10 @@ import { useAuth } from '../lib/auth-context';
 import { getErrorMessage, isApiError } from '../lib/api';
 import { generateKey } from '../lib/idempotency';
 import { getCategories, getSuppliers, createSupplier, createPurchase, createSupplierPayment } from '../lib/services';
-import { formatMoney, parseNumber } from '../lib/format';
+import { formatDate, formatMoney, formatMethod, parseNumber } from '../lib/format';
 import { useNetworkStatus } from '../lib/network';
 import type { Category, PaymentMethod, Supplier } from '../types/api';
+import type { ReceiptData } from '../printing/receipt.types';
 import {
   Button,
   ErrorNote,
@@ -40,8 +42,9 @@ interface LineItem {
 type Step = 'form' | 'success';
 
 export function BuyScreen() {
-  const { accessToken, hasPermission } = useAuth();
+  const { accessToken, session, hasPermission } = useAuth();
   const { isConnected } = useNetworkStatus();
+  const router = useRouter();
 
   const [step, setStep] = useState<Step>('form');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -64,6 +67,7 @@ export function BuyScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successLines, setSuccessLines] = useState<string[]>([]);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const itemIdRef = useRef(0);
 
@@ -179,6 +183,31 @@ export function BuyScreen() {
       }
 
       setSuccessLines(lines);
+
+      const now = new Date();
+      const receipt: ReceiptData = {
+        type: 'purchase',
+        yardName: (session?.user.tenantSlug ?? 'YardFlow').replace(/-/g, ' '),
+        title: 'PURCHASE RECEIPT',
+        referenceId: `#${now.getTime().toString(36).toUpperCase().slice(-6)}`,
+        dateTime: formatDate(now.toISOString()) + ' ' + now.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }),
+        cashierName: session?.user.fullName ?? 'Cashier',
+        partyLabel: 'Supplier',
+        partyName: supplier?.label ?? '',
+        lines: items.map((item) => ({
+          label: item.categoryName,
+          value: `${item.weightKg.toFixed(1)} kg × KES ${item.pricePerKg.toFixed(0)} = ${formatMoney(item.total)}`,
+        })),
+        totalLabel: 'Session Total',
+        totalValue: formatMoney(sessionTotal),
+        ...(paidAmount > 0 ? { paidLabel: 'Paid now', paidValue: formatMoney(paidAmount) } : {}),
+        methodValue: paidAmount > 0 ? formatMethod(method) : 'Deferred',
+        balanceLabel: paidAmount < sessionTotal ? 'Balance owed' : undefined,
+        balanceValue: paidAmount < sessionTotal ? formatMoney(sessionTotal - paidAmount) : undefined,
+        footer: 'Thank you · YardFlow POS',
+      };
+      setReceiptData(receipt);
+
       setStep('success');
     } catch (err) {
       if (isApiError(err) && err.status === 409) {
@@ -202,6 +231,7 @@ export function BuyScreen() {
     setError(null);
     setStep('form');
     setSuccessLines([]);
+    setReceiptData(null);
   };
 
   if (loadingData) return <LoadingView message="Loading…" />;
@@ -216,7 +246,21 @@ export function BuyScreen() {
               <Text key={i} style={styles.successLine}>{line}</Text>
             ))}
           </View>
-          <Button label="Record another" variant="secondary" onPress={resetSession} fullWidth style={{ marginTop: spacing[4] }} />
+          {receiptData && (
+            <Button
+              label="View Receipt"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: '/receipt-preview',
+                  params: { receipt: JSON.stringify(receiptData) },
+                })
+              }
+              fullWidth
+              style={{ marginTop: spacing[3] }}
+            />
+          )}
+          <Button label="Record another" variant="secondary" onPress={resetSession} fullWidth style={{ marginTop: spacing[3] }} />
         </View>
       </Screen>
     );

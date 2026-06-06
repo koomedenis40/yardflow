@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -80,13 +81,24 @@ export function StockScreen() {
         ListEmptyComponent={<EmptyState message="No stock on hand" />}
         renderItem={({ item }) => {
           const estValue = Number(item.weightKg) * Number(item.avgCostKes);
+          const name = item.category?.name ?? 'Unknown';
           return (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.75}
+              onPress={() =>
+                Alert.alert(
+                  name,
+                  `On hand: ${formatWeight(item.weightKg)}\nEst. value: ${formatMoney(estValue)}\nAvg cost: ${formatMoney(item.avgCostKes)}/kg\n\nStock movement history coming soon.`,
+                  [{ text: 'OK' }],
+                )
+              }
+            >
               <View style={styles.cardIcon}>
                 <Package size={18} color={colors.green[800]} strokeWidth={1.75} />
               </View>
               <View style={styles.cardContent}>
-                <Text style={styles.cardName}>{item.category?.name ?? 'Unknown'}</Text>
+                <Text style={styles.cardName}>{name}</Text>
                 <Text style={styles.cardMeta}>
                   Avg cost {formatMoney(item.avgCostKes)}/kg
                 </Text>
@@ -95,7 +107,7 @@ export function StockScreen() {
                 <Text style={styles.cardKg}>{formatWeight(item.weightKg)}</Text>
                 <Text style={styles.cardValue}>{formatMoney(estValue)}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           );
         }}
       />

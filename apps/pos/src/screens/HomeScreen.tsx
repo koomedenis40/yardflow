@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -235,12 +236,20 @@ export function HomeScreen() {
             </View>
           ) : (
             recentActivity.map((item, i) => (
-              <View
+              <TouchableOpacity
                 key={i}
                 style={[
                   styles.activityRow,
                   i < recentActivity.length - 1 && styles.activityRowBorder,
                 ]}
+                onPress={() =>
+                  Alert.alert(
+                    item.kind === 'purchase' ? 'Purchase' : 'Sale',
+                    `${item.label}\n${item.sub}\n${item.value}\n\nDetailed transaction history coming soon.`,
+                    [{ text: 'OK' }],
+                  )
+                }
+                activeOpacity={0.7}
               >
                 <View
                   style={[
@@ -264,7 +273,7 @@ export function HomeScreen() {
                 >
                   {item.value}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>

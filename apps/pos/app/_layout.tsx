@@ -23,9 +23,17 @@ function NavigationGuard() {
 
   useEffect(() => {
     if (isLoading) return;
-    const inAuthGroup = segments[0] === '(tabs)';
-    if (!session && inAuthGroup) router.replace('/login');
-    else if (session && !inAuthGroup) router.replace('/(tabs)');
+    const inTabsGroup = segments[0] === '(tabs)';
+    // Only handle two auth transitions:
+    // 1. Unauthenticated user accessing tabs → send to login
+    // 2. Authenticated user at root/login → send to tabs
+    // Never redirect authenticated users away from non-tab routes (stock, more/*, etc.)
+    const atRootOrLogin = !segments[0] || segments[0] === 'login';
+    if (!session && inTabsGroup) {
+      router.replace('/login');
+    } else if (session && atRootOrLogin) {
+      router.replace('/(tabs)');
+    }
   }, [session, isLoading, segments, router]);
 
   return null;

@@ -9,7 +9,8 @@ import {
   getBuyers, getBuyer, getSuppliers, getSupplier,
   createSupplierPayment, createBuyerPayment,
 } from '../lib/services';
-import { formatMoney, parseNumber } from '../lib/format';
+import { formatDate, formatMoney, formatMethod, parseNumber } from '../lib/format';
+import type { ReceiptData } from '../printing/receipt.types';
 import { useNetworkStatus } from '../lib/network';
 import type { Buyer, PaymentMethod, Supplier, SupplierPayment, BuyerPayment } from '../types/api';
 import {
@@ -39,6 +40,7 @@ export function PayScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successResult, setSuccessResult] = useState<SupplierPayment | BuyerPayment | null>(null);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -107,6 +109,17 @@ export function PayScreen() {
     setSubmitting(true);
     setError(null);
     try {
+      const now = new Date();
+      const baseReceipt = {
+        yardName: (session?.user.tenantSlug ?? 'YardFlow').replace(/-/g, ' '),
+        referenceId: `#${now.getTime().toString(36).toUpperCase().slice(-6)}`,
+        dateTime: formatDate(now.toISOString()) + ' ' + now.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }),
+        cashierName: session?.user.fullName ?? 'Cashier',
+        lines: [] as Array<{ label: string; value: string }>,
+        methodValue: formatMethod(method),
+        footer: 'Thank you · YardFlow POS',
+      };
+
       if (mode === 'supplier') {
         if (!hasPermission('supplier_payment:create')) { setError('No permission'); return; }
         const res = await createSupplierPayment(accessToken!, {
@@ -116,6 +129,15 @@ export function PayScreen() {
           idempotencyKey: generateKey(),
         });
         setSuccessResult(res);
+        setReceiptData({
+          ...baseReceipt,
+          type: 'supplier_payment',
+          title: 'SUPPLIER PAYMENT',
+          partyLabel: 'Supplier',
+          partyName: selectedParty.label,
+          totalLabel: 'Amount Paid',
+          totalValue: formatMoney(res.amountKes),
+        });
       } else {
         if (!hasPermission('buyer_payment:create')) { setError('No permission'); return; }
         const res = await createBuyerPayment(accessToken!, {
@@ -125,6 +147,15 @@ export function PayScreen() {
           idempotencyKey: generateKey(),
         });
         setSuccessResult(res);
+        setReceiptData({
+          ...baseReceipt,
+          type: 'buyer_payment',
+          title: 'PAYMENT RECEIVED',
+          partyLabel: 'Buyer',
+          partyName: selectedParty.label,
+          totalLabel: 'Amount Received',
+          totalValue: formatMoney(res.amountKes),
+        });
       }
       setStep('success');
     } catch (err) {
@@ -142,6 +173,7 @@ export function PayScreen() {
     setError(null);
     setStep('form');
     setSuccessResult(null);
+    setReceiptData(null);
     void load();
   };
 
@@ -162,12 +194,26 @@ export function PayScreen() {
               </Text>
             </View>
           )}
+          {receiptData && (
+            <Button
+              label="View Receipt"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: '/receipt-preview',
+                  params: { receipt: JSON.stringify(receiptData) },
+                })
+              }
+              fullWidth
+              style={{ marginTop: spacing[3] }}
+            />
+          )}
           <Button
             label="New payment"
             variant="secondary"
             onPress={reset}
             fullWidth
-            style={{ marginTop: spacing[4] }}
+            style={{ marginTop: spacing[3] }}
           />
         </View>
       </Screen>

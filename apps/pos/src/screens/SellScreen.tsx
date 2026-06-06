@@ -6,7 +6,8 @@ import { useAuth } from '../lib/auth-context';
 import { getErrorMessage, isApiError } from '../lib/api';
 import { generateKey } from '../lib/idempotency';
 import { getBuyers, getCategories, getInventory, createBuyer, createSale, createBuyerPayment } from '../lib/services';
-import { formatMoney, formatWeight, parseNumber } from '../lib/format';
+import { formatDate, formatMoney, formatMethod, formatWeight, parseNumber } from '../lib/format';
+import type { ReceiptData } from '../printing/receipt.types';
 import { useNetworkStatus } from '../lib/network';
 import type { Buyer, Category, InventoryItem, PaymentMethod } from '../types/api';
 import {
@@ -44,6 +45,7 @@ export function SellScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -135,6 +137,32 @@ export function SellScreen() {
       setSuccessMsg(
         `${Number(res.weightKg).toFixed(1)} kg · ${formatMoney(res.totalValueKes)}${receivedAmount > 0 ? ` · Received ${formatMoney(receivedAmount)}` : ''}`,
       );
+
+      const now = new Date();
+      const receipt: ReceiptData = {
+        type: 'sale',
+        yardName: (session?.user.tenantSlug ?? 'YardFlow').replace(/-/g, ' '),
+        title: 'SALE RECEIPT',
+        referenceId: `#${now.getTime().toString(36).toUpperCase().slice(-6)}`,
+        dateTime: formatDate(now.toISOString()) + ' ' + now.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }),
+        cashierName: session?.user.fullName ?? 'Cashier',
+        partyLabel: 'Buyer',
+        partyName: buyer?.label ?? '',
+        lines: [
+          { label: 'Category', value: category?.label ?? '' },
+          { label: 'Weight', value: `${parseNumber(kg).toFixed(1)} kg` },
+          { label: 'Price/kg', value: `KES ${parseNumber(pricePerKg).toFixed(0)}` },
+        ],
+        totalLabel: 'Total',
+        totalValue: formatMoney(res.totalValueKes),
+        ...(receivedAmount > 0 ? { paidLabel: 'Received now', paidValue: formatMoney(receivedAmount) } : {}),
+        methodValue: receivedAmount > 0 ? formatMethod(method) : 'Deferred',
+        balanceLabel: receivedAmount < parseNumber(res.totalValueKes as string) ? 'Balance due' : undefined,
+        balanceValue: receivedAmount < parseNumber(res.totalValueKes as string) ? formatMoney(parseNumber(res.totalValueKes as string) - receivedAmount) : undefined,
+        footer: 'Thank you · YardFlow POS',
+      };
+      setReceiptData(receipt);
+
       setStep('success');
     } catch (err) {
       if (isApiError(err) && err.status === 409) {
@@ -156,6 +184,7 @@ export function SellScreen() {
     setMethod('cash');
     setError(null);
     setStep('form');
+    setReceiptData(null);
   };
 
   if (loadingData) return <LoadingView message="Loading…" />;
@@ -165,7 +194,21 @@ export function SellScreen() {
       <Screen>
         <View style={styles.successWrap}>
           <SuccessNote message={`Sale recorded\n${successMsg}`} />
-          <Button label="Record another" variant="secondary" onPress={resetForm} fullWidth style={{ marginTop: spacing[4] }} />
+          {receiptData && (
+            <Button
+              label="View Receipt"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: '/receipt-preview',
+                  params: { receipt: JSON.stringify(receiptData) },
+                })
+              }
+              fullWidth
+              style={{ marginTop: spacing[3] }}
+            />
+          )}
+          <Button label="Record another" variant="secondary" onPress={resetForm} fullWidth style={{ marginTop: spacing[3] }} />
         </View>
       </Screen>
     );
