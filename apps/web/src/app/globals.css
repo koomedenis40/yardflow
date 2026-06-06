@@ -918,15 +918,16 @@ select.field-input--compact:focus {
 }
 .skeleton--table { height: 240px; background: linear-gradient(90deg, #eee, #f7f8fa, #eee); }
 
-/* ——— Login (IBM-style) ——— */
+/* ——— Login ——— */
 .login-page { height: 100vh; display: grid; grid-template-columns: 480px 1fr; }
 
 .login-panel {
-  padding: var(--space-12);
+  padding: 56px 52px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   background: var(--surface);
+  border-right: 1px solid var(--border);
 }
 .login-panel__brand {
   display: flex;
@@ -950,7 +951,7 @@ select.field-input--compact:focus {
   letter-spacing: -0.03em;
 }
 .login-panel__lead { color: var(--muted); margin: 0 0 var(--space-8); font-size: var(--text-body); }
-.login-form { max-width: 380px; width: 100%; }
+.login-form { max-width: 376px; width: 100%; }
 
 .login-field {
   display: flex;
@@ -967,18 +968,18 @@ select.field-input--compact:focus {
   padding: 12px 0;
   border: none;
   border-bottom: 1px solid var(--border);
-  background: #f4f4f4;
+  background: transparent;
   font-size: var(--text-body);
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-color 0.12s;
+  width: 100%;
 }
 .login-field__input:focus {
   outline: none;
   border-bottom-color: var(--focus);
-  background: #eaeaea;
 }
 
 .login-visual {
-  background: #f4f4f4;
+  background: #f6f6f6;
   display: grid;
   place-items: center;
   position: relative;
@@ -987,39 +988,39 @@ select.field-input--compact:focus {
 .login-visual__grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(22, 22, 22, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-image: radial-gradient(rgba(22, 22, 22, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 .login-visual__shape {
   position: absolute;
-  border: 1px solid rgba(22, 22, 22, 0.12);
+  border: 1px solid rgba(22, 22, 22, 0.06);
   border-radius: 50%;
 }
-.login-visual__shape--1 { width: 120px; height: 120px; top: 18%; right: 22%; }
+.login-visual__shape--1 { width: 240px; height: 240px; top: 12%; right: 10%; }
 .login-visual__shape--2 {
-  width: 80px;
-  height: 80px;
-  bottom: 28%;
-  left: 18%;
-  border-radius: 4px;
+  width: 160px;
+  height: 160px;
+  bottom: 18%;
+  left: 8%;
+  border-radius: 6px;
   transform: rotate(45deg);
 }
 .login-visual__shape--3 {
-  width: 48px;
-  height: 48px;
-  top: 42%;
-  left: 42%;
-  background: rgba(15, 98, 254, 0.12);
-  border-color: rgba(15, 98, 254, 0.25);
+  width: 80px;
+  height: 80px;
+  top: 44%;
+  left: 38%;
+  background: rgba(15, 98, 254, 0.03);
+  border-color: rgba(15, 98, 254, 0.07);
 }
 .login-visual__accent {
   position: absolute;
-  width: 200px;
-  height: 200px;
+  width: 360px;
+  height: 360px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(20, 107, 77, 0.08) 0%, transparent 70%);
-  bottom: 10%;
-  right: 10%;
+  background: radial-gradient(circle, rgba(20, 107, 77, 0.04) 0%, transparent 65%);
+  bottom: -60px;
+  right: -60px;
 }
 .login-visual__tag {
   position: relative;
@@ -1031,6 +1032,7 @@ select.field-input--compact:focus {
   text-align: center;
   max-width: 280px;
   line-height: 1.6;
+  opacity: 0.7;
 }
 
 .settings-panel {
