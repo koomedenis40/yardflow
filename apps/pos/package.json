@@ -1,0 +1,36 @@
+{
+  "name": "@yardflow/pos",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@expo/metro-config": "~56.0.13",
+    "@react-native-async-storage/async-storage": "3.1.1",
+    "@react-native-community/netinfo": "12.0.1",
+    "@yardflow/theme": "workspace:*",
+    "expo": "~56.0.9",
+    "expo-constants": "~56.0.17",
+    "expo-linking": "~56.0.13",
+    "expo-router": "~56.2.9",
+    "expo-secure-store": "~56.0.4",
+    "expo-splash-screen": "~56.0.10",
+    "expo-status-bar": "~56.0.4",
+    "lucide-react-native": "^1.17.0",
+    "react": "19.2.7",
+    "react-native": "0.85.3",
+    "react-native-safe-area-context": "5.8.0",
+    "react-native-screens": "~4.25.2",
+    "react-native-svg": "15.15.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.2.17",
+    "typescript": "^5.7.2"
+  }
+}

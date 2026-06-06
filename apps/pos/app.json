@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "YardFlow POS",
+    "slug": "yardflow-pos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "yardflow",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#146b4d"
+    },
+    "android": {
+      "package": "com.yardflow.pos",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#146b4d"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://10.0.2.2:3001/v1",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "yardflow-pos"
+      }
+    }
+  }
+}
