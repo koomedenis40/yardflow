@@ -156,3 +156,52 @@ export function buildBuyerPaymentReceipt(
     footer: FOOTER,
   };
 }
+
+// ─── Partial builders for RecentPaymentEntry (detail screen) ─────────────────
+// These entries lack allocation details — that's expected from the list endpoint.
+
+export function buildSupplierPaymentReceiptFromEntry(
+  entry: { id: string; amountKes: string; paymentMethod: string; createdAt: string },
+  supplierName: string,
+  cashierName: string,
+  tenantSlug: string | undefined,
+): ReceiptData {
+  return {
+    type: 'supplier_payment',
+    yardName: formatYardName(tenantSlug),
+    title: 'SUPPLIER PAYMENT',
+    referenceId: shortRef(entry.id),
+    dateTime: formatDateTime(entry.createdAt),
+    cashierName,
+    partyLabel: 'Supplier',
+    partyName: supplierName,
+    lines: [],
+    totalLabel: 'Amount Paid',
+    totalValue: formatMoney(entry.amountKes),
+    methodValue: formatMethod(entry.paymentMethod),
+    footer: FOOTER,
+  };
+}
+
+export function buildBuyerPaymentReceiptFromEntry(
+  entry: { id: string; amountKes: string; paymentMethod: string; createdAt: string },
+  buyerName: string,
+  cashierName: string,
+  tenantSlug: string | undefined,
+): ReceiptData {
+  return {
+    type: 'buyer_payment',
+    yardName: formatYardName(tenantSlug),
+    title: 'PAYMENT RECEIVED',
+    referenceId: shortRef(entry.id),
+    dateTime: formatDateTime(entry.createdAt),
+    cashierName,
+    partyLabel: 'Buyer',
+    partyName: buyerName,
+    lines: [],
+    totalLabel: 'Amount Received',
+    totalValue: formatMoney(entry.amountKes),
+    methodValue: formatMethod(entry.paymentMethod),
+    footer: FOOTER,
+  };
+}

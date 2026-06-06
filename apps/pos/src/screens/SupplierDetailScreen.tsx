@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowDownToLine, ChevronLeft, Wallet } from 'lucide-react-native';
+import { ArrowDownToLine, ChevronLeft, ChevronRight, Wallet } from 'lucide-react-native';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getErrorMessage } from '../lib/api';
 import { getSupplierDetail } from '../lib/services';
 import { formatDate, formatMoney, formatMethod } from '../lib/format';
+import { buildSupplierPaymentReceiptFromEntry } from '../printing/receipt.builder';
 import type { SupplierDetail } from '../types/api';
 import { ErrorNote, LoadingView } from '../components/ui';
 
 export function SupplierDetailScreen({ id }: { id: string }) {
-  const { accessToken } = useAuth();
+  const { accessToken, session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -107,9 +108,17 @@ export function SupplierDetailScreen({ id }: { id: string }) {
             <Text style={styles.emptyText}>Nothing outstanding</Text>
           ) : (
             supplier.unpaidPurchases.map((p, i) => (
-              <View
+              <TouchableOpacity
                 key={p.id}
                 style={[styles.row, i < supplier.unpaidPurchases.length - 1 && styles.rowBorder]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  Alert.alert(
+                    'Receipt unavailable',
+                    'Full receipt details (weight, price, payment method) are not returned by the outstanding purchases endpoint. Open the purchase in transaction history to reprint.',
+                    [{ text: 'OK' }],
+                  )
+                }
               >
                 <View style={styles.rowLeft}>
                   <Text style={styles.rowPrimary}>
@@ -121,7 +130,7 @@ export function SupplierDetailScreen({ id }: { id: string }) {
                   <Text style={styles.rowAmber}>{formatMoney(p.remainingKes)} left</Text>
                   <Text style={styles.rowMuted}>{formatMoney(p.totalValueKes)} total</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
@@ -133,16 +142,29 @@ export function SupplierDetailScreen({ id }: { id: string }) {
             <Text style={styles.emptyText}>No payments yet</Text>
           ) : (
             supplier.recentPayments.map((p, i) => (
-              <View
+              <TouchableOpacity
                 key={p.id}
                 style={[styles.row, i < supplier.recentPayments.length - 1 && styles.rowBorder]}
+                activeOpacity={0.7}
+                onPress={() => {
+                  const receipt = buildSupplierPaymentReceiptFromEntry(
+                    p,
+                    supplier.name,
+                    session?.user.fullName ?? 'Cashier',
+                    session?.user.tenantSlug,
+                  );
+                  router.push({ pathname: '/receipt-preview', params: { receipt: JSON.stringify(receipt) } });
+                }}
               >
                 <View style={styles.rowLeft}>
                   <Text style={styles.rowPrimary}>{formatMethod(p.paymentMethod)}</Text>
                   <Text style={styles.rowMeta}>{formatDate(p.createdAt)}</Text>
                 </View>
-                <Text style={styles.rowGreen}>{formatMoney(p.amountKes)}</Text>
-              </View>
+                <View style={styles.rowRight}>
+                  <Text style={styles.rowGreen}>{formatMoney(p.amountKes)}</Text>
+                  <ChevronRight size={14} color={colors.muted} strokeWidth={1.75} />
+                </View>
+              </TouchableOpacity>
             ))
           )}
         </View>

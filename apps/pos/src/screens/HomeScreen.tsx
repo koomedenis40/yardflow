@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -28,6 +27,7 @@ import {
 } from '../lib/services';
 import { formatDate, formatMoney, formatWeight, isTodayEat } from '../lib/format';
 import type { BalanceSummary, BuyerPayment, InventoryItem, Purchase, Sale, SupplierPayment } from '../types/api';
+import { buildPurchaseReceipt, buildSaleReceipt } from '../printing/receipt.builder';
 import { ErrorNote, LoadingView, OfflineBanner } from '../components/ui';
 import { useNetworkStatus } from '../lib/network';
 
@@ -40,13 +40,9 @@ interface DashboardData {
   buyerPayments: BuyerPayment[];
 }
 
-type ActivityItem = {
-  kind: 'purchase' | 'sale';
-  label: string;
-  sub: string;
-  value: string;
-  date: string;
-};
+type ActivityItem =
+  | { kind: 'purchase'; record: Purchase; label: string; sub: string; value: string; date: string }
+  | { kind: 'sale'; record: Sale; label: string; sub: string; value: string; date: string };
 
 export function HomeScreen() {
   const { accessToken, session, hasPermission } = useAuth();
@@ -101,6 +97,7 @@ export function HomeScreen() {
   const recentActivity: ActivityItem[] = [
     ...(data?.purchases.slice(0, 5).map((p) => ({
       kind: 'purchase' as const,
+      record: p,
       label: p.supplier?.name ?? 'Supplier',
       sub: p.category?.name ?? '',
       value: formatMoney(p.totalValueKes),
@@ -108,6 +105,7 @@ export function HomeScreen() {
     })) ?? []),
     ...(data?.sales.slice(0, 5).map((s) => ({
       kind: 'sale' as const,
+      record: s,
       label: s.buyer?.name ?? 'Buyer',
       sub: s.category?.name ?? '',
       value: formatMoney(s.totalValueKes),
@@ -242,13 +240,12 @@ export function HomeScreen() {
                   styles.activityRow,
                   i < recentActivity.length - 1 && styles.activityRowBorder,
                 ]}
-                onPress={() =>
-                  Alert.alert(
-                    item.kind === 'purchase' ? 'Purchase' : 'Sale',
-                    `${item.label}\n${item.sub}\n${item.value}\n\nDetailed transaction history coming soon.`,
-                    [{ text: 'OK' }],
-                  )
-                }
+                onPress={() => {
+                  const receipt = item.kind === 'purchase'
+                    ? buildPurchaseReceipt(item.record, session?.user.fullName ?? 'Cashier', session?.user.tenantSlug)
+                    : buildSaleReceipt(item.record, session?.user.fullName ?? 'Cashier', session?.user.tenantSlug);
+                  router.push({ pathname: '/receipt-preview', params: { receipt: JSON.stringify(receipt) } });
+                }}
                 activeOpacity={0.7}
               >
                 <View
