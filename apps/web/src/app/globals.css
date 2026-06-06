@@ -677,6 +677,29 @@ button, input, select { font: inherit; }
   box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.15);
 }
 .field-input--compact { padding: 7px 10px; font-size: var(--text-body-sm); }
+
+/* Custom select — remove native OS chrome, add chevron */
+select.field-input,
+select.field-input--compact {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238d9196' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 34px;
+  cursor: pointer;
+}
+select.field-input--compact {
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+select.field-input:focus,
+select.field-input--compact:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.15);
+}
+
 .field-error { color: var(--red); margin: 0 0 var(--space-3); font-size: var(--text-body-sm); }
 .stack-form { display: flex; flex-direction: column; gap: var(--space-3); }
 .muted { color: var(--muted); }

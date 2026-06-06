@@ -55,8 +55,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persist, router]);
 
   useEffect(() => {
-    persist(readStored());
-    setIsLoading(false);
+    const stored = readStored();
+    if (!stored?.accessToken) {
+      setIsLoading(false);
+      return;
+    }
+    apiFetch<AuthMeResponse>('/auth/me', { token: stored.accessToken })
+      .then((user) => {
+        persist({ ...stored, user });
+      })
+      .catch(() => {
+        persist(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [persist]);
 
   useEffect(() => {
