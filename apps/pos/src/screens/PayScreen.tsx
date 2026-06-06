@@ -1,31 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getErrorMessage } from '../lib/api';
 import { generateKey } from '../lib/idempotency';
 import {
-  getBuyers,
-  getBuyer,
-  getSuppliers,
-  getSupplier,
-  createSupplierPayment,
-  createBuyerPayment,
+  getBuyers, getBuyer, getSuppliers, getSupplier,
+  createSupplierPayment, createBuyerPayment,
 } from '../lib/services';
 import { formatMoney, parseNumber } from '../lib/format';
 import { useNetworkStatus } from '../lib/network';
 import type { Buyer, PaymentMethod, Supplier, SupplierPayment, BuyerPayment } from '../types/api';
 import {
-  Button,
-  ErrorNote,
-  Field,
-  Kpi,
-  LoadingView,
-  MethodPicker,
-  OfflineBanner,
-  Screen,
-  SelectSheet,
-  SuccessNote,
+  Button, ErrorNote, Field, LoadingView, MethodPicker,
+  OfflineBanner, Screen, SelectSheet, SuccessNote,
 } from '../components/ui';
 import type { SelectOption } from '../components/ui';
 
@@ -33,8 +22,9 @@ type Mode = 'supplier' | 'buyer';
 type Step = 'form' | 'success';
 
 export function PayScreen() {
-  const { accessToken, hasPermission } = useAuth();
+  const { accessToken, session, hasPermission } = useAuth();
   const { isConnected } = useNetworkStatus();
+  const router = useRouter();
 
   const [mode, setMode] = useState<Mode>('supplier');
   const [step, setStep] = useState<Step>('form');
@@ -92,11 +82,9 @@ export function PayScreen() {
     if (!accessToken) return;
     try {
       if (mode === 'supplier') {
-        const detail = await getSupplier(accessToken, opt.id);
-        setPartyDetail(detail);
+        setPartyDetail(await getSupplier(accessToken, opt.id));
       } else {
-        const detail = await getBuyer(accessToken, opt.id);
-        setPartyDetail(detail);
+        setPartyDetail(await getBuyer(accessToken, opt.id));
       }
     } catch {
       setError('Failed to load party details');
@@ -165,9 +153,22 @@ export function PayScreen() {
       <Screen>
         <View style={styles.successWrap}>
           <SuccessNote
-            message={`Payment recorded · ${formatMoney(successResult.amountKes)}\n${allocCount} allocation${allocCount !== 1 ? 's' : ''} applied`}
+            message={`Payment recorded\n${formatMoney(successResult.amountKes)}`}
           />
-          <Button label="New payment" onPress={reset} fullWidth style={{ marginTop: spacing[4] }} />
+          {allocCount > 0 && (
+            <View style={styles.allocNote}>
+              <Text style={styles.allocText}>
+                {allocCount} balance allocation{allocCount !== 1 ? 's' : ''} applied automatically
+              </Text>
+            </View>
+          )}
+          <Button
+            label="New payment"
+            variant="secondary"
+            onPress={reset}
+            fullWidth
+            style={{ marginTop: spacing[4] }}
+          />
         </View>
       </Screen>
     );
@@ -186,6 +187,7 @@ export function PayScreen() {
         <TouchableOpacity
           style={[styles.toggleBtn, mode === 'supplier' && styles.toggleActive]}
           onPress={() => handleModeChange('supplier')}
+          activeOpacity={0.8}
         >
           <Text style={[styles.toggleLabel, mode === 'supplier' && styles.toggleLabelActive]}>
             Pay Supplier
@@ -194,6 +196,7 @@ export function PayScreen() {
         <TouchableOpacity
           style={[styles.toggleBtn, mode === 'buyer' && styles.toggleActive]}
           onPress={() => handleModeChange('buyer')}
+          activeOpacity={0.8}
         >
           <Text style={[styles.toggleLabel, mode === 'buyer' && styles.toggleLabelActive]}>
             Receive from Buyer
@@ -221,21 +224,33 @@ export function PayScreen() {
         />
       )}
 
+      {/* Balance context */}
       {supplierDetail && (
-        <View style={styles.balanceGrid}>
-          <View style={styles.balanceHalf}>
-            <Kpi label="Owed" value={formatMoney(supplierDetail.balanceKes)} tone="amber" />
+        <View style={styles.balanceRow}>
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceLabel}>Owed to supplier</Text>
+            <Text style={[styles.balanceValue, styles.balanceAmber]}>
+              {formatMoney(supplierDetail.balanceKes)}
+            </Text>
           </View>
-          <View style={styles.balanceHalf}>
-            <Kpi label="Credit" value={formatMoney(supplierDetail.creditBalanceKes)} tone="green" />
-          </View>
+          {Number(supplierDetail.creditBalanceKes) > 0 && (
+            <View style={styles.balanceItem}>
+              <Text style={styles.balanceLabel}>Credit balance</Text>
+              <Text style={[styles.balanceValue, styles.balanceGreen]}>
+                {formatMoney(supplierDetail.creditBalanceKes)}
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
       {buyerDetail && (
-        <View style={styles.balanceGrid}>
-          <View style={styles.balanceFull}>
-            <Kpi label="Receivable" value={formatMoney((buyerDetail as Buyer).balanceKes)} tone="blue" />
+        <View style={styles.balanceRow}>
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceLabel}>Receivable from buyer</Text>
+            <Text style={[styles.balanceValue, styles.balanceBlue]}>
+              {formatMoney((buyerDetail as Buyer).balanceKes)}
+            </Text>
           </View>
         </View>
       )}
@@ -246,6 +261,7 @@ export function PayScreen() {
         onChangeText={setAmount}
         keyboardType="decimal-pad"
         placeholder="0"
+        returnKeyType="done"
       />
 
       <MethodPicker value={method} onChange={setMethod} />
@@ -278,15 +294,45 @@ const styles = StyleSheet.create({
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 6,
     alignItems: 'center',
   },
   toggleActive: { backgroundColor: colors.surface, elevation: 2 },
-  toggleLabel: { fontSize: fontSize.bodySm, fontWeight: fontWeight.medium, color: colors.muted },
+  toggleLabel: {
+    fontSize: fontSize.bodySm,
+    fontWeight: fontWeight.medium,
+    color: colors.muted,
+  },
   toggleLabelActive: { color: colors.text },
-  balanceGrid: { flexDirection: 'row', gap: 8, marginBottom: spacing[4] },
-  balanceHalf: { flex: 1 },
-  balanceFull: { flex: 1 },
+  balanceRow: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    marginBottom: spacing[4],
+  },
+  balanceItem: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing[4],
+    elevation: 1,
+  },
+  balanceLabel: {
+    fontSize: fontSize.caption,
+    color: colors.muted,
+    marginBottom: 4,
+    letterSpacing: 0.4,
+  },
+  balanceValue: { fontSize: fontSize.h3, fontWeight: fontWeight.semibold },
+  balanceAmber: { color: colors.amber.text },
+  balanceGreen: { color: colors.green[800] },
+  balanceBlue: { color: colors.blue[700] },
   successWrap: { flex: 1, justifyContent: 'center' },
+  allocNote: {
+    marginTop: spacing[3],
+    backgroundColor: colors.green[100],
+    borderRadius: radius.sm,
+    padding: spacing[3],
+  },
+  allocText: { fontSize: fontSize.bodySm, color: colors.green[900], textAlign: 'center' },
 });

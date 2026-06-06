@@ -12,8 +12,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  Banknote,
-  Package,
   Scale,
   Wallet,
 } from 'lucide-react-native';
@@ -29,7 +27,7 @@ import {
 } from '../lib/services';
 import { formatDate, formatMoney, formatWeight, isTodayEat } from '../lib/format';
 import type { BalanceSummary, BuyerPayment, InventoryItem, Purchase, Sale, SupplierPayment } from '../types/api';
-import { ErrorNote, Kpi, LoadingView, OfflineBanner } from '../components/ui';
+import { ErrorNote, LoadingView, OfflineBanner } from '../components/ui';
 import { useNetworkStatus } from '../lib/network';
 
 interface DashboardData {
@@ -40,6 +38,14 @@ interface DashboardData {
   supplierPayments: SupplierPayment[];
   buyerPayments: BuyerPayment[];
 }
+
+type ActivityItem = {
+  kind: 'purchase' | 'sale';
+  label: string;
+  sub: string;
+  value: string;
+  date: string;
+};
 
 export function HomeScreen() {
   const { accessToken, session, hasPermission } = useAuth();
@@ -83,20 +89,26 @@ export function HomeScreen() {
 
   if (loading) return <LoadingView message="Loading dashboard…" />;
 
-  const totalStock = data?.inventory.reduce((s, r) => s + Number(r.weightKg), 0) ?? 0;
-  const intakeToday = data?.purchases.filter((p) => isTodayEat(p.createdAt)).reduce((s, p) => s + Number(p.totalValueKes), 0) ?? 0;
-  const salesToday = data?.sales.filter((s) => isTodayEat(s.createdAt)).reduce((s, x) => s + Number(x.totalValueKes), 0) ?? 0;
+  const totalStockKg = data?.inventory.reduce((s, r) => s + Number(r.weightKg), 0) ?? 0;
+  const intakeToday = data?.purchases
+    .filter((p) => isTodayEat(p.createdAt))
+    .reduce((s, p) => s + Number(p.totalValueKes), 0) ?? 0;
+  const salesToday = data?.sales
+    .filter((s) => isTodayEat(s.createdAt))
+    .reduce((s, x) => s + Number(x.totalValueKes), 0) ?? 0;
 
-  const recentActivity = [
-    ...(data?.purchases.slice(0, 4).map((p) => ({
+  const recentActivity: ActivityItem[] = [
+    ...(data?.purchases.slice(0, 5).map((p) => ({
       kind: 'purchase' as const,
       label: p.supplier?.name ?? 'Supplier',
+      sub: p.category?.name ?? '',
       value: formatMoney(p.totalValueKes),
       date: p.createdAt,
     })) ?? []),
-    ...(data?.sales.slice(0, 4).map((s) => ({
+    ...(data?.sales.slice(0, 5).map((s) => ({
       kind: 'sale' as const,
       label: s.buyer?.name ?? 'Buyer',
+      sub: s.category?.name ?? '',
       value: formatMoney(s.totalValueKes),
       date: s.createdAt,
     })) ?? []),
@@ -104,56 +116,65 @@ export function HomeScreen() {
     .sort((a, b) => +new Date(b.date) - +new Date(a.date))
     .slice(0, 8);
 
+  const yardName = (session?.user.tenantSlug ?? 'yard').replace(/-/g, ' ');
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <OfflineBanner />
+      {!isConnected && <OfflineBanner />}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green[800]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.green[800]}
+          />
         }
       >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good day</Text>
-            <Text style={styles.yardName}>{session?.user.tenantSlug ?? 'Yard'}</Text>
+            <Text style={styles.greeting}>
+              {session?.user.fullName ? `Hello, ${session.user.fullName.split(' ')[0]}` : 'Good day'}
+            </Text>
+            <Text style={styles.yardName}>{yardName}</Text>
           </View>
-          <Package size={28} color={colors.green[800]} strokeWidth={1.75} />
         </View>
 
         {error ? <ErrorNote message={error} /> : null}
 
-        {/* KPI Grid */}
-        <View style={styles.kpiGrid}>
-          <View style={styles.kpiFull}>
-            <Kpi label="Stock on hand" value={formatWeight(totalStock)} tone="featured" />
+        {/* Stock hero */}
+        <View style={styles.stockHero}>
+          <Text style={styles.stockHeroLabel}>STOCK ON HAND</Text>
+          <Text style={styles.stockHeroValue}>{formatWeight(totalStockKg)}</Text>
+        </View>
+
+        {/* KPI row */}
+        <View style={styles.kpiRow}>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiLabel}>INTAKE TODAY</Text>
+            <Text style={[styles.kpiValue, styles.kpiGreen]}>{formatMoney(intakeToday)}</Text>
           </View>
-          <View style={styles.kpiRow}>
-            <View style={styles.kpiHalf}>
-              <Kpi label="Intake today" value={formatMoney(intakeToday)} tone="green" />
-            </View>
-            <View style={styles.kpiHalf}>
-              <Kpi label="Sales today" value={formatMoney(salesToday)} tone="blue" />
-            </View>
+          <View style={[styles.kpiCard, styles.kpiCardRight]}>
+            <Text style={styles.kpiLabel}>SALES TODAY</Text>
+            <Text style={[styles.kpiValue, styles.kpiBlue]}>{formatMoney(salesToday)}</Text>
           </View>
-          <View style={styles.kpiRow}>
-            <View style={styles.kpiHalf}>
-              <Kpi
-                label="Supplier owed"
-                value={formatMoney(data?.summary.supplierOwedKes ?? 0)}
-                tone="amber"
-              />
-            </View>
-            <View style={styles.kpiHalf}>
-              <Kpi
-                label="Receivable"
-                value={formatMoney(data?.summary.buyerReceivableKes ?? 0)}
-                tone="blue"
-              />
-            </View>
+        </View>
+
+        <View style={styles.kpiRow}>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiLabel}>SUPPLIER OWED</Text>
+            <Text style={[styles.kpiValue, styles.kpiAmber]}>
+              {formatMoney(data?.summary.supplierOwedKes ?? 0)}
+            </Text>
+          </View>
+          <View style={[styles.kpiCard, styles.kpiCardRight]}>
+            <Text style={styles.kpiLabel}>RECEIVABLE</Text>
+            <Text style={[styles.kpiValue, styles.kpiBlue]}>
+              {formatMoney(data?.summary.buyerReceivableKes ?? 0)}
+            </Text>
           </View>
         </View>
 
@@ -166,8 +187,9 @@ export function HomeScreen() {
               onPress={() => router.push('/(tabs)/buy')}
               activeOpacity={0.8}
             >
-              <ArrowDownToLine size={22} color="#fff" strokeWidth={1.75} />
+              <ArrowDownToLine size={24} color="#fff" strokeWidth={1.75} />
               <Text style={styles.actionLabel}>Buy</Text>
+              <Text style={styles.actionSub}>Record intake</Text>
             </TouchableOpacity>
           )}
           {hasPermission('sale:create') && (
@@ -176,8 +198,9 @@ export function HomeScreen() {
               onPress={() => router.push('/(tabs)/sell')}
               activeOpacity={0.8}
             >
-              <ArrowUpFromLine size={22} color="#fff" strokeWidth={1.75} />
+              <ArrowUpFromLine size={24} color="#fff" strokeWidth={1.75} />
               <Text style={styles.actionLabel}>Sell</Text>
+              <Text style={styles.actionSub}>Record sale</Text>
             </TouchableOpacity>
           )}
           {hasPermission('supplier_payment:create') && (
@@ -186,8 +209,9 @@ export function HomeScreen() {
               onPress={() => router.push('/(tabs)/pay')}
               activeOpacity={0.8}
             >
-              <Wallet size={22} color={colors.text} strokeWidth={1.75} />
+              <Wallet size={24} color={colors.text} strokeWidth={1.75} />
               <Text style={[styles.actionLabel, styles.actionLabelDark]}>Pay</Text>
+              <Text style={[styles.actionSub, styles.actionSubDark]}>Settle balance</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -195,8 +219,9 @@ export function HomeScreen() {
             onPress={() => router.push('/stock')}
             activeOpacity={0.8}
           >
-            <Scale size={22} color={colors.text} strokeWidth={1.75} />
+            <Scale size={24} color={colors.text} strokeWidth={1.75} />
             <Text style={[styles.actionLabel, styles.actionLabelDark]}>Stock</Text>
+            <Text style={[styles.actionSub, styles.actionSubDark]}>View inventory</Text>
           </TouchableOpacity>
         </View>
 
@@ -204,16 +229,41 @@ export function HomeScreen() {
         <Text style={styles.sectionTitle}>RECENT ACTIVITY</Text>
         <View style={styles.activityCard}>
           {recentActivity.length === 0 ? (
-            <Text style={styles.emptyText}>No transactions recorded yet</Text>
+            <View style={styles.emptyActivity}>
+              <Text style={styles.emptyText}>No transactions yet today</Text>
+              <Text style={styles.emptySubText}>Pull down to refresh</Text>
+            </View>
           ) : (
             recentActivity.map((item, i) => (
-              <View key={i} style={[styles.activityRow, i < recentActivity.length - 1 && styles.activityRowBorder]}>
-                <View style={[styles.activityDot, item.kind === 'purchase' ? styles.dotGreen : styles.dotBlue]} />
+              <View
+                key={i}
+                style={[
+                  styles.activityRow,
+                  i < recentActivity.length - 1 && styles.activityRowBorder,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.activityDot,
+                    item.kind === 'purchase' ? styles.dotGreen : styles.dotBlue,
+                  ]}
+                />
                 <View style={styles.activityContent}>
-                  <Text style={styles.activityLabel} numberOfLines={1}>{item.label}</Text>
-                  <Text style={styles.activityDate}>{formatDate(item.date)}</Text>
+                  <Text style={styles.activityLabel} numberOfLines={1}>
+                    {item.label}
+                  </Text>
+                  <Text style={styles.activitySub} numberOfLines={1}>
+                    {item.sub} · {formatDate(item.date)}
+                  </Text>
                 </View>
-                <Text style={styles.activityValue}>{item.value}</Text>
+                <Text
+                  style={[
+                    styles.activityValue,
+                    item.kind === 'purchase' ? styles.activityValueGreen : styles.activityValueBlue,
+                  ]}
+                >
+                  {item.value}
+                </Text>
               </View>
             ))
           )}
@@ -225,39 +275,82 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.canvas },
-  scroll: { padding: spacing[4], paddingBottom: 32 },
+  scroll: { padding: spacing[4], paddingBottom: 40 },
 
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+    marginBottom: spacing[5],
   },
   greeting: { fontSize: fontSize.caption, color: colors.muted, marginBottom: 2 },
-  yardName: { fontSize: fontSize.h2, fontWeight: fontWeight.semibold, color: colors.text },
+  yardName: {
+    fontSize: fontSize.h2,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+    textTransform: 'capitalize',
+  },
 
-  kpiGrid: { gap: 8, marginBottom: spacing[6] },
-  kpiFull: { flex: 1 },
-  kpiRow: { flexDirection: 'row', gap: 8 },
-  kpiHalf: { flex: 1 },
+  stockHero: {
+    backgroundColor: colors.green[900],
+    borderRadius: radius.md,
+    padding: spacing[5],
+    marginBottom: spacing[3],
+    alignItems: 'center',
+  },
+  stockHeroLabel: {
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.medium,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  stockHeroValue: {
+    fontSize: 36,
+    fontWeight: fontWeight.semibold,
+    color: '#fff',
+  },
+
+  kpiRow: { flexDirection: 'row', gap: spacing[3], marginBottom: spacing[3] },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing[4],
+    elevation: 1,
+  },
+  kpiCardRight: {},
+  kpiLabel: {
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.medium,
+    color: colors.muted,
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  kpiValue: { fontSize: fontSize.h3, fontWeight: fontWeight.semibold },
+  kpiGreen: { color: colors.green[800] },
+  kpiBlue: { color: colors.blue[700] },
+  kpiAmber: { color: colors.amber.text },
 
   sectionTitle: {
     fontSize: fontSize.caption,
     fontWeight: fontWeight.medium,
     color: colors.muted,
     letterSpacing: 0.8,
-    marginBottom: 8,
+    marginBottom: spacing[3],
+    marginTop: spacing[2],
   },
 
-  actionGrid: { flexDirection: 'row', gap: 8, marginBottom: spacing[6] },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3], marginBottom: spacing[5] },
   action: {
-    flex: 1,
+    width: '47%',
     borderRadius: radius.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    minHeight: 72,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[3],
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    minHeight: 96,
+    gap: 4,
   },
   actionGreen: { backgroundColor: colors.green[800] },
   actionBlue: { backgroundColor: colors.blue[700] },
@@ -267,8 +360,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     elevation: 1,
   },
-  actionLabel: { fontSize: fontSize.bodySm, fontWeight: fontWeight.semibold, color: '#fff' },
+  actionLabel: {
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.semibold,
+    color: '#fff',
+    marginTop: 4,
+  },
   actionLabelDark: { color: colors.text },
+  actionSub: { fontSize: fontSize.caption, color: 'rgba(255,255,255,0.7)' },
+  actionSubDark: { color: colors.muted },
 
   activityCard: {
     backgroundColor: colors.surface,
@@ -280,16 +380,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing[4],
-    paddingVertical: 12,
-    gap: 10,
+    paddingVertical: 14,
+    gap: 12,
   },
-  activityRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.neutral[100] },
-  activityDot: { width: 8, height: 8, borderRadius: 4 },
+  activityRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  activityDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   dotGreen: { backgroundColor: colors.green[800] },
   dotBlue: { backgroundColor: colors.blue[700] },
-  activityContent: { flex: 1 },
-  activityLabel: { fontSize: fontSize.body, color: colors.text },
-  activityDate: { fontSize: fontSize.caption, color: colors.muted, marginTop: 2 },
-  activityValue: { fontSize: fontSize.body, fontWeight: fontWeight.medium, color: colors.text },
-  emptyText: { padding: spacing[4], color: colors.muted, textAlign: 'center' },
+  activityContent: { flex: 1, minWidth: 0 },
+  activityLabel: { fontSize: fontSize.body, fontWeight: fontWeight.medium, color: colors.text },
+  activitySub: { fontSize: fontSize.caption, color: colors.muted, marginTop: 2 },
+  activityValue: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, flexShrink: 0 },
+  activityValueGreen: { color: colors.green[800] },
+  activityValueBlue: { color: colors.blue[700] },
+
+  emptyActivity: { padding: spacing[6], alignItems: 'center' },
+  emptyText: { fontSize: fontSize.body, color: colors.muted },
+  emptySubText: { fontSize: fontSize.caption, color: colors.neutral[400] ?? colors.muted, marginTop: 4 },
 });

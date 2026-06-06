@@ -123,6 +123,55 @@ export interface BuyerPayment {
   allocations: PaymentAllocation[];
 }
 
+// Enriched detail types (returned by GET /suppliers/:id and GET /buyers/:id)
+export interface UnpaidPurchaseEntry {
+  id: string;
+  totalValueKes: string;
+  remainingKes: number;
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+  category?: { id: string; name: string } | null;
+}
+
+export interface UnpaidSaleEntry {
+  id: string;
+  totalValueKes: string;
+  remainingKes: number;
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+  category?: { id: string; name: string } | null;
+}
+
+export interface RecentPaymentEntry {
+  id: string;
+  amountKes: string;
+  paymentMethod: string;
+  createdAt: string;
+}
+
+export interface SupplierDetail {
+  id: string;
+  name: string;
+  phone: string | null;
+  balanceKes: number;
+  creditBalanceKes: number;
+  isActive: boolean;
+  createdAt: string;
+  unpaidPurchases: UnpaidPurchaseEntry[];
+  recentPayments: RecentPaymentEntry[];
+}
+
+export interface BuyerDetail {
+  id: string;
+  name: string;
+  phone: string | null;
+  balanceKes: number;
+  isActive: boolean;
+  createdAt: string;
+  unpaidSales: UnpaidSaleEntry[];
+  recentPayments: RecentPaymentEntry[];
+}
+
 // Balances
 export interface BalanceSummary {
   supplierOwedKes: number;

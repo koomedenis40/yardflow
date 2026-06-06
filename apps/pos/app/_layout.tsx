@@ -1,8 +1,20 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../src/lib/auth-context';
+import { PrinterProvider } from '../src/printing/printer.context';
+
+void SplashScreen.preventAutoHideAsync();
+
+function SplashGate() {
+  const { isLoading } = useAuth();
+  useEffect(() => {
+    if (!isLoading) void SplashScreen.hideAsync();
+  }, [isLoading]);
+  return null;
+}
 
 function NavigationGuard() {
   const { session, isLoading } = useAuth();
@@ -12,11 +24,8 @@ function NavigationGuard() {
   useEffect(() => {
     if (isLoading) return;
     const inAuthGroup = segments[0] === '(tabs)';
-    if (!session && inAuthGroup) {
-      router.replace('/login');
-    } else if (session && !inAuthGroup) {
-      router.replace('/(tabs)');
-    }
+    if (!session && inAuthGroup) router.replace('/login');
+    else if (session && !inAuthGroup) router.replace('/(tabs)');
   }, [session, isLoading, segments, router]);
 
   return null;
@@ -26,32 +35,45 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationGuard />
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="login" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="stock"
-            options={{ headerShown: true, title: 'Stock on Hand', headerBackTitle: 'Back' }}
-          />
-          <Stack.Screen
-            name="more/suppliers"
-            options={{ headerShown: true, title: 'Suppliers', headerBackTitle: 'More' }}
-          />
-          <Stack.Screen
-            name="more/buyers"
-            options={{ headerShown: true, title: 'Buyers', headerBackTitle: 'More' }}
-          />
-          <Stack.Screen
-            name="more/categories"
-            options={{ headerShown: true, title: 'Categories', headerBackTitle: 'More' }}
-          />
-          <Stack.Screen
-            name="more/settings"
-            options={{ headerShown: true, title: 'Settings', headerBackTitle: 'More' }}
-          />
-        </Stack>
+        <PrinterProvider>
+          <SplashGate />
+          <NavigationGuard />
+          <StatusBar style="auto" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="login" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="receipt-preview"
+              options={{ headerShown: true, title: 'Receipt Preview', headerBackTitle: 'Back' }}
+            />
+            <Stack.Screen
+              name="stock"
+              options={{ headerShown: true, title: 'Stock on Hand', headerBackTitle: 'Back' }}
+            />
+            <Stack.Screen
+              name="more/suppliers"
+              options={{ headerShown: true, title: 'Suppliers', headerBackTitle: 'More' }}
+            />
+            <Stack.Screen
+              name="more/buyers"
+              options={{ headerShown: true, title: 'Buyers', headerBackTitle: 'More' }}
+            />
+            <Stack.Screen
+              name="more/categories"
+              options={{ headerShown: true, title: 'Categories', headerBackTitle: 'More' }}
+            />
+            <Stack.Screen
+              name="more/settings"
+              options={{ headerShown: true, title: 'Settings', headerBackTitle: 'More' }}
+            />
+            <Stack.Screen
+              name="more/printer"
+              options={{ headerShown: true, title: 'Printer', headerBackTitle: 'More' }}
+            />
+            <Stack.Screen name="supplier/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="buyer/[id]" options={{ headerShown: false }} />
+          </Stack>
+        </PrinterProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

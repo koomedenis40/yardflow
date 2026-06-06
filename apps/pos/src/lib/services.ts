@@ -2,6 +2,7 @@ import { apiFetch } from './api';
 import type {
   BalanceSummary,
   Buyer,
+  BuyerDetail,
   BuyerPayment,
   Category,
   InventoryItem,
@@ -9,6 +10,7 @@ import type {
   Sale,
   Supplier,
   SupplierBalance,
+  SupplierDetail,
   SupplierPayment,
   UserProfile,
 } from '../types/api';
@@ -59,6 +61,12 @@ export const getBuyers = (token: string) =>
 export const getBuyer = (token: string, id: string) =>
   apiFetch<Buyer>(`/buyers/${id}`, { token });
 
+export const getSupplierDetail = (token: string, id: string) =>
+  apiFetch<SupplierDetail>(`/suppliers/${id}`, { token });
+
+export const getBuyerDetail = (token: string, id: string) =>
+  apiFetch<BuyerDetail>(`/buyers/${id}`, { token });
+
 export const createBuyer = (
   token: string,
   data: { name: string; phone?: string },
@@ -81,9 +89,7 @@ export interface CreatePurchaseInput {
   supplierId: string;
   categoryId: string;
   weightKg: number;
-  pricePerKgKes: number;
-  paidAmountKes: number;
-  paymentMethod: string;
+  pricePerKg: number;
   idempotencyKey: string;
 }
 
@@ -98,9 +104,7 @@ export interface CreateSaleInput {
   buyerId: string;
   categoryId: string;
   weightKg: number;
-  pricePerKgKes: number;
-  paidAmountKes: number;
-  paymentMethod: string;
+  pricePerKg: number;
   idempotencyKey: string;
 }
 

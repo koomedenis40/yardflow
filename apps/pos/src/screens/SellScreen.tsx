@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fontSize, fontWeight, spacing } from '@yardflow/theme';
+import { useRouter } from 'expo-router';
+import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getErrorMessage, isApiError } from '../lib/api';
 import { generateKey } from '../lib/idempotency';
-import { getBuyers, getCategories, getInventory, createBuyer, createSale } from '../lib/services';
+import { getBuyers, getCategories, getInventory, createBuyer, createSale, createBuyerPayment } from '../lib/services';
 import { formatMoney, formatWeight, parseNumber } from '../lib/format';
 import { useNetworkStatus } from '../lib/network';
 import type { Buyer, Category, InventoryItem, PaymentMethod } from '../types/api';
@@ -24,8 +25,9 @@ import type { SelectOption } from '../components/ui';
 type Step = 'form' | 'success';
 
 export function SellScreen() {
-  const { accessToken, hasPermission } = useAuth();
+  const { accessToken, session, hasPermission } = useAuth();
   const { isConnected } = useNetworkStatus();
+  const router = useRouter();
 
   const [step, setStep] = useState<Step>('form');
   const [buyers, setBuyers] = useState<Buyer[]>([]);
@@ -88,6 +90,7 @@ export function SellScreen() {
   };
 
   const total = parseNumber(kg) * parseNumber(pricePerKg);
+  const receivedAmount = parseNumber(receivedNow);
 
   const handleQuickCreateBuyer = async (name: string) => {
     if (!accessToken) return;
@@ -115,13 +118,22 @@ export function SellScreen() {
         buyerId: buyer.id,
         categoryId: category.id,
         weightKg: parseNumber(kg),
-        pricePerKgKes: parseNumber(pricePerKg),
-        paidAmountKes: parseNumber(receivedNow) || 0,
-        paymentMethod: method,
+        pricePerKg: parseNumber(pricePerKg),
         idempotencyKey: generateKey(),
       });
+
+      // Record payment separately if amount received now
+      if (receivedAmount > 0 && hasPermission('buyer_payment:create')) {
+        await createBuyerPayment(accessToken!, {
+          buyerId: buyer.id,
+          amountKes: receivedAmount,
+          paymentMethod: method,
+          idempotencyKey: generateKey(),
+        });
+      }
+
       setSuccessMsg(
-        `Sold ${Number(res.weightKg).toFixed(1)} kg · ${formatMoney(res.totalValueKes)} · ${res.paymentStatus}`,
+        `${Number(res.weightKg).toFixed(1)} kg · ${formatMoney(res.totalValueKes)}${receivedAmount > 0 ? ` · Received ${formatMoney(receivedAmount)}` : ''}`,
       );
       setStep('success');
     } catch (err) {
@@ -153,7 +165,7 @@ export function SellScreen() {
       <Screen>
         <View style={styles.successWrap}>
           <SuccessNote message={`Sale recorded\n${successMsg}`} />
-          <Button label="Record another" onPress={resetForm} fullWidth style={{ marginTop: spacing[4] }} />
+          <Button label="Record another" variant="secondary" onPress={resetForm} fullWidth style={{ marginTop: spacing[4] }} />
         </View>
       </Screen>
     );
@@ -191,23 +203,30 @@ export function SellScreen() {
         </View>
       )}
 
-      <Field
-        label="Weight (kg)"
-        value={kg}
-        onChangeText={setKg}
-        keyboardType="decimal-pad"
-        placeholder="0.0"
-        suffix="kg"
-      />
-
-      <Field
-        label="Price per kg (KES)"
-        value={pricePerKg}
-        onChangeText={setPricePerKg}
-        keyboardType="decimal-pad"
-        placeholder="0"
-        suffix="KES/kg"
-      />
+      <View style={styles.kgPriceRow}>
+        <View style={styles.kgField}>
+          <Field
+            label="Weight (kg)"
+            value={kg}
+            onChangeText={setKg}
+            keyboardType="decimal-pad"
+            placeholder="0.0"
+            suffix="kg"
+            returnKeyType="next"
+          />
+        </View>
+        <View style={styles.priceField}>
+          <Field
+            label="Price/kg"
+            value={pricePerKg}
+            onChangeText={setPricePerKg}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            suffix="KES"
+            returnKeyType="next"
+          />
+        </View>
+      </View>
 
       {total > 0 && (
         <View style={styles.totalRow}>
@@ -223,9 +242,10 @@ export function SellScreen() {
         keyboardType="decimal-pad"
         placeholder="0"
         hint="Leave 0 to record as receivable"
+        returnKeyType="done"
       />
 
-      <MethodPicker value={method} onChange={setMethod} />
+      {receivedAmount > 0 && <MethodPicker value={method} onChange={setMethod} />}
 
       <Button
         label="Record Sale"
@@ -246,13 +266,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
     marginTop: spacing[2],
   },
+  kgPriceRow: { flexDirection: 'row', gap: spacing[3], marginBottom: spacing[2] },
+  kgField: { flex: 1 },
+  priceField: { flex: 1 },
   stockRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: colors.blue[100],
     padding: spacing[3],
-    borderRadius: 8,
-    marginBottom: spacing[4],
+    borderRadius: radius.sm,
+    marginBottom: spacing[3],
   },
   stockLabel: { fontSize: fontSize.bodySm, color: colors.blue[700] },
   stockValue: { fontSize: fontSize.bodySm, fontWeight: fontWeight.semibold, color: colors.blue[700] },
@@ -262,7 +285,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.blue[100],
     padding: spacing[4],
-    borderRadius: 8,
+    borderRadius: radius.md,
     marginBottom: spacing[4],
   },
   totalLabel: { fontSize: fontSize.body, color: colors.blue[700] },

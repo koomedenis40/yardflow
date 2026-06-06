@@ -8,8 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search } from 'lucide-react-native';
+import { ChevronRight, Search } from 'lucide-react-native';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getBuyers, getSuppliers } from '../lib/services';
@@ -25,6 +26,7 @@ interface PartyListScreenProps {
 
 export function PartyListScreen({ mode }: PartyListScreenProps) {
   const { accessToken } = useAuth();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [items, setItems] = useState<(Supplier | Buyer)[]>([]);
@@ -93,9 +95,16 @@ export function PartyListScreen({ mode }: PartyListScreenProps) {
           const balance = Number(item.balanceKes);
           const isSupplier = mode === 'suppliers';
           const credit = isSupplier ? Number((item as Supplier).creditBalanceKes) : 0;
-
           return (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                isSupplier
+                  ? router.push({ pathname: '/supplier/[id]', params: { id: item.id } })
+                  : router.push({ pathname: '/buyer/[id]', params: { id: item.id } })
+              }
+              activeOpacity={0.8}
+            >
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
               </View>
@@ -115,8 +124,9 @@ export function PartyListScreen({ mode }: PartyListScreenProps) {
                 {!item.isActive ? (
                   <Badge status="unpaid" />
                 ) : null}
+                <ChevronRight size={14} color={colors.muted} strokeWidth={1.75} />
               </View>
-            </View>
+            </TouchableOpacity>
           );
         }}
       />
