@@ -6,7 +6,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getCategories } from '../lib/services';
@@ -16,7 +15,6 @@ import { EmptyState, ErrorNote, LoadingView, OfflineBanner } from '../components
 
 export function CategoriesScreen() {
   const { accessToken } = useAuth();
-  const insets = useSafeAreaInsets();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +45,7 @@ export function CategoriesScreen() {
   if (loading) return <LoadingView message="Loading categories…" />;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <OfflineBanner />
 
       {error ? <View style={styles.errorWrap}><ErrorNote message={error} /></View> : null}

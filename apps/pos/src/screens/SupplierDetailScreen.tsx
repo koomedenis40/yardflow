@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowDownToLine, ChevronLeft, ChevronRight, Wallet } from 'lucide-react-native';
@@ -108,17 +108,9 @@ export function SupplierDetailScreen({ id }: { id: string }) {
             <Text style={styles.emptyText}>Nothing outstanding</Text>
           ) : (
             supplier.unpaidPurchases.map((p, i) => (
-              <TouchableOpacity
+              <View
                 key={p.id}
                 style={[styles.row, i < supplier.unpaidPurchases.length - 1 && styles.rowBorder]}
-                activeOpacity={0.7}
-                onPress={() =>
-                  Alert.alert(
-                    'Receipt unavailable',
-                    'Full receipt details (weight, price, payment method) are not returned by the outstanding purchases endpoint. Open the purchase in transaction history to reprint.',
-                    [{ text: 'OK' }],
-                  )
-                }
               >
                 <View style={styles.rowLeft}>
                   <Text style={styles.rowPrimary}>
@@ -130,7 +122,7 @@ export function SupplierDetailScreen({ id }: { id: string }) {
                   <Text style={styles.rowAmber}>{formatMoney(p.remainingKes)} left</Text>
                   <Text style={styles.rowMuted}>{formatMoney(p.totalValueKes)} total</Text>
                 </View>
-              </TouchableOpacity>
+              </View>
             ))
           )}
         </View>

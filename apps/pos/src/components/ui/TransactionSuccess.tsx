@@ -116,6 +116,10 @@ export function TransactionSuccess({
                   <Text style={styles.halfBtnLabel}>View Receipt</Text>
                 </TouchableOpacity>
               </View>
+              <TouchableOpacity style={[styles.homeBtnFull, { marginTop: spacing[3] }]} onPress={goHome} activeOpacity={0.8}>
+                <Home size={15} color={colors.text} strokeWidth={1.75} />
+                <Text style={styles.halfBtnLabel}>Back Home</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -150,6 +154,13 @@ export function TransactionSuccess({
             </>
           )}
         </View>
+      )}
+
+      {!receipt && (
+        <TouchableOpacity style={[styles.homeBtnFull, { marginBottom: spacing[3] }]} onPress={goHome} activeOpacity={0.8}>
+          <Home size={15} color={colors.text} strokeWidth={1.75} />
+          <Text style={styles.halfBtnLabel}>Back Home</Text>
+        </TouchableOpacity>
       )}
 
       {/* Record another */}
@@ -278,6 +289,18 @@ const styles = StyleSheet.create({
     fontSize: fontSize.bodySm,
     fontWeight: fontWeight.medium,
     color: colors.text,
+  },
+  homeBtnFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    elevation: 1,
   },
   newBtn: {
     flexDirection: 'row',

@@ -168,29 +168,29 @@ export function HomeScreen() {
 
         {/* KPI row */}
         <View style={styles.kpiRow}>
-          <View style={styles.kpiCard}>
+          <TouchableOpacity style={styles.kpiCard} onPress={() => router.push('/(tabs)/buy')} activeOpacity={0.8}>
             <Text style={styles.kpiLabel}>INTAKE TODAY</Text>
             <Text style={[styles.kpiValue, styles.kpiGreen]}>{formatMoney(intakeToday)}</Text>
-          </View>
-          <View style={[styles.kpiCard, styles.kpiCardRight]}>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.kpiCard, styles.kpiCardRight]} onPress={() => router.push('/(tabs)/sell')} activeOpacity={0.8}>
             <Text style={styles.kpiLabel}>SALES TODAY</Text>
             <Text style={[styles.kpiValue, styles.kpiBlue]}>{formatMoney(salesToday)}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.kpiRow}>
-          <View style={styles.kpiCard}>
+          <TouchableOpacity style={styles.kpiCard} onPress={() => router.push('/(tabs)/pay')} activeOpacity={0.8}>
             <Text style={styles.kpiLabel}>SUPPLIER OWED</Text>
             <Text style={[styles.kpiValue, styles.kpiAmber]}>
               {formatMoney(data?.summary.supplierOwedKes ?? 0)}
             </Text>
-          </View>
-          <View style={[styles.kpiCard, styles.kpiCardRight]}>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.kpiCard, styles.kpiCardRight]} onPress={() => router.push('/(tabs)/pay')} activeOpacity={0.8}>
             <Text style={styles.kpiLabel}>RECEIVABLE</Text>
             <Text style={[styles.kpiValue, styles.kpiBlue]}>
               {formatMoney(data?.summary.buyerReceivableKes ?? 0)}
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Quick Actions */}

@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight, Search } from 'lucide-react-native';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
@@ -27,7 +26,6 @@ interface PartyListScreenProps {
 export function PartyListScreen({ mode }: PartyListScreenProps) {
   const { accessToken } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const [items, setItems] = useState<(Supplier | Buyer)[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +64,7 @@ export function PartyListScreen({ mode }: PartyListScreenProps) {
   if (loading) return <LoadingView message={`Loading ${mode}…`} />;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <OfflineBanner />
 
       <View style={styles.searchRow}>

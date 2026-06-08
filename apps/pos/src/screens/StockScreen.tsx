@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { Package, Search, TrendingUp } from 'lucide-react-native';
@@ -119,7 +121,11 @@ export function StockScreen() {
           const hasAvgCost = Number(item.avgCostKes) > 0;
           const name = item.category?.name ?? 'Unknown';
           return (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.8}
+              onPress={() => Alert.alert('Coming in R8', 'Category-level detail and drill-down is coming in the next release.', [{ text: 'Got it' }])}
+            >
               <View style={styles.cardIcon}>
                 <Package size={18} color={colors.green[800]} strokeWidth={1.75} />
               </View>
@@ -143,7 +149,7 @@ export function StockScreen() {
                   </View>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           );
         }}
       />
