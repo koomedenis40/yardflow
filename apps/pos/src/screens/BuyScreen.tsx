@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
@@ -26,7 +25,7 @@ import {
   OfflineBanner,
   Screen,
   SelectSheet,
-  SuccessNote,
+  TransactionSuccess,
 } from '../components/ui';
 import type { SelectOption } from '../components/ui';
 
@@ -44,8 +43,6 @@ type Step = 'form' | 'success';
 export function BuyScreen() {
   const { accessToken, session, hasPermission } = useAuth();
   const { isConnected } = useNetworkStatus();
-  const router = useRouter();
-
   const [step, setStep] = useState<Step>('form');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -66,7 +63,6 @@ export function BuyScreen() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successLines, setSuccessLines] = useState<string[]>([]);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const itemIdRef = useRef(0);
@@ -154,24 +150,18 @@ export function BuyScreen() {
 
     setSubmitting(true);
     setError(null);
-    const lines: string[] = [];
 
     try {
-      // Create one purchase per line item
       for (const item of items) {
-        const res = await createPurchase(accessToken!, {
+        await createPurchase(accessToken!, {
           supplierId: supplier.id,
           categoryId: item.categoryId,
           weightKg: item.weightKg,
           pricePerKg: item.pricePerKg,
           idempotencyKey: generateKey(),
         });
-        lines.push(
-          `${item.categoryName} · ${item.weightKg.toFixed(1)} kg · ${formatMoney(res.totalValueKes)}`,
-        );
       }
 
-      // Record payment if cashier paid anything now
       if (paidAmount > 0) {
         await createSupplierPayment(accessToken!, {
           supplierId: supplier.id,
@@ -179,10 +169,7 @@ export function BuyScreen() {
           paymentMethod: method,
           idempotencyKey: generateKey(),
         });
-        lines.push(`Paid: ${formatMoney(paidAmount)} (${method === 'cash' ? 'Cash' : method})`);
       }
-
-      setSuccessLines(lines);
 
       const now = new Date();
       const receipt: ReceiptData = {
@@ -230,38 +217,39 @@ export function BuyScreen() {
     setMethod('cash');
     setError(null);
     setStep('form');
-    setSuccessLines([]);
     setReceiptData(null);
   };
 
   if (loadingData) return <LoadingView message="Loading…" />;
 
   if (step === 'success') {
+    const rows = [
+      { label: 'Supplier', value: supplier?.label ?? '' },
+      {
+        label: 'Items',
+        value: `${items.length} item${items.length !== 1 ? 's' : ''}`,
+      },
+      {
+        label: 'Session Total',
+        value: formatMoney(sessionTotal),
+        accent: 'green' as const,
+      },
+      ...(paidAmount > 0
+        ? [
+            { label: 'Paid Now', value: formatMoney(paidAmount) },
+            { label: 'Method', value: formatMethod(method) },
+          ]
+        : [{ label: 'Payment', value: 'Deferred — use Pay tab' }]),
+    ];
     return (
       <Screen>
-        <View style={styles.successWrap}>
-          <SuccessNote message="Purchase session recorded" />
-          <View style={styles.successLines}>
-            {successLines.map((line, i) => (
-              <Text key={i} style={styles.successLine}>{line}</Text>
-            ))}
-          </View>
-          {receiptData && (
-            <Button
-              label="View Receipt"
-              variant="secondary"
-              onPress={() =>
-                router.push({
-                  pathname: '/receipt-preview',
-                  params: { receipt: JSON.stringify(receiptData) },
-                })
-              }
-              fullWidth
-              style={{ marginTop: spacing[3] }}
-            />
-          )}
-          <Button label="Record another" variant="secondary" onPress={resetSession} fullWidth style={{ marginTop: spacing[3] }} />
-        </View>
+        <TransactionSuccess
+          title="Purchase Recorded"
+          receipt={receiptData}
+          rows={rows}
+          onNew={resetSession}
+          newLabel="Record another purchase"
+        />
       </Screen>
     );
   }
@@ -466,13 +454,4 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
     elevation: 1,
   },
-  successWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing[2] },
-  successLines: {
-    marginTop: spacing[4],
-    backgroundColor: colors.neutral[50] ?? colors.canvas,
-    borderRadius: radius.md,
-    padding: spacing[4],
-    gap: 6,
-  },
-  successLine: { fontSize: fontSize.body, color: colors.text, lineHeight: 22 },
 });

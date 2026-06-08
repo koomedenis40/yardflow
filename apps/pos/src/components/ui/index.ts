@@ -11,3 +11,5 @@ export { Screen } from './Screen';
 export { OfflineBanner } from './OfflineBanner';
 export { Section, Row } from './Section';
 export { LoadingView, EmptyState, ErrorNote, SuccessNote, InfoNote } from './Feedback';
+export { TransactionSuccess } from './TransactionSuccess';
+export type { SuccessRow } from './TransactionSuccess';

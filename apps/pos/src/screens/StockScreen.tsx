@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package } from 'lucide-react-native';
+import { Package, Search, TrendingUp } from 'lucide-react-native';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getInventory } from '../lib/services';
@@ -25,6 +25,7 @@ export function StockScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -55,59 +56,100 @@ export function StockScreen() {
     0,
   );
 
+  const sorted = [...inventory].sort((a, b) => Number(b.weightKg) - Number(a.weightKg));
+  const filtered = search.trim()
+    ? sorted.filter((i) =>
+        (i.category?.name ?? '').toLowerCase().includes(search.trim().toLowerCase()),
+      )
+    : sorted;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <OfflineBanner />
 
-      {/* Header */}
+      {/* Sticky header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Stock on Hand</Text>
-        <View style={styles.headerMeta}>
-          <Text style={styles.totalKg}>{formatWeight(totalKg)}</Text>
-          <Text style={styles.totalValue}>Est. {formatMoney(totalValue)}</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.title}>Stock on Hand</Text>
+            <Text style={styles.categoryCount}>
+              {inventory.length} categor{inventory.length !== 1 ? 'ies' : 'y'}
+            </Text>
+          </View>
+          <View style={styles.headerStats}>
+            <Text style={styles.totalKg}>{formatWeight(totalKg)}</Text>
+            <Text style={styles.totalValue}>
+              {totalValue > 0 ? `Est. ${formatMoney(totalValue)}` : 'Est. KES —'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Search bar */}
+        <View style={styles.searchBox}>
+          <Search size={15} color={colors.muted} strokeWidth={1.75} />
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search category…"
+            placeholderTextColor={colors.muted}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
         </View>
       </View>
 
       {error ? <View style={styles.errorWrap}><ErrorNote message={error} /></View> : null}
 
       <FlatList
-        data={inventory.sort((a, b) => Number(b.weightKg) - Number(a.weightKg))}
-        keyExtractor={(item) => item.id}
+        data={filtered}
+        keyExtractor={(item) => item.categoryId}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green[800]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.green[800]}
+          />
         }
-        ListEmptyComponent={<EmptyState message="No stock on hand" />}
+        ListEmptyComponent={
+          search.trim() ? (
+            <EmptyState message={`No category matching "${search}"`} />
+          ) : (
+            <EmptyState message="No stock on hand" />
+          )
+        }
         renderItem={({ item }) => {
           const estValue = Number(item.weightKg) * Number(item.avgCostKes);
+          const hasAvgCost = Number(item.avgCostKes) > 0;
           const name = item.category?.name ?? 'Unknown';
           return (
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.75}
-              onPress={() =>
-                Alert.alert(
-                  name,
-                  `On hand: ${formatWeight(item.weightKg)}\nEst. value: ${formatMoney(estValue)}\nAvg cost: ${formatMoney(item.avgCostKes)}/kg\n\nStock movement history coming soon.`,
-                  [{ text: 'OK' }],
-                )
-              }
-            >
+            <View style={styles.card}>
               <View style={styles.cardIcon}>
                 <Package size={18} color={colors.green[800]} strokeWidth={1.75} />
               </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardName}>{name}</Text>
-                <Text style={styles.cardMeta}>
-                  Avg cost {formatMoney(item.avgCostKes)}/kg
-                </Text>
+              <View style={styles.cardBody}>
+                <View style={styles.cardRow}>
+                  <Text style={styles.cardName}>{name}</Text>
+                  <Text style={styles.cardKg}>{formatWeight(item.weightKg)}</Text>
+                </View>
+                <View style={styles.cardRow}>
+                  <Text style={styles.cardMeta}>
+                    Avg cost {hasAvgCost ? `${formatMoney(item.avgCostKes)}/kg` : '—'}
+                  </Text>
+                  <Text style={styles.cardValue}>
+                    {hasAvgCost ? formatMoney(estValue) : 'KES —'}
+                  </Text>
+                </View>
+                {hasAvgCost && (
+                  <View style={styles.valueBadge}>
+                    <TrendingUp size={11} color={colors.green[800]} strokeWidth={2} />
+                    <Text style={styles.valueBadgeText}>Est. value</Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.cardRight}>
-                <Text style={styles.cardKg}>{formatWeight(item.weightKg)}</Text>
-                <Text style={styles.cardValue}>{formatMoney(estValue)}</Text>
-              </View>
-            </TouchableOpacity>
+            </View>
           );
         }}
       />
@@ -118,24 +160,65 @@ export function StockScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.canvas },
   header: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[3],
   },
-  title: { fontSize: fontSize.h2, fontWeight: fontWeight.semibold, color: colors.text, marginBottom: 4 },
-  headerMeta: { flexDirection: 'row', gap: 12, alignItems: 'baseline' },
-  totalKg: { fontSize: fontSize.h1, fontWeight: fontWeight.semibold, color: colors.green[800] },
-  totalValue: { fontSize: fontSize.body, color: colors.muted },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing[3],
+  },
+  title: {
+    fontSize: fontSize.h3,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+    marginBottom: 2,
+  },
+  categoryCount: {
+    fontSize: fontSize.caption,
+    color: colors.muted,
+  },
+  headerStats: { alignItems: 'flex-end' },
+  totalKg: {
+    fontSize: fontSize.h2,
+    fontWeight: fontWeight.semibold,
+    color: colors.green[800],
+  },
+  totalValue: {
+    fontSize: fontSize.caption,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.canvas,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing[3],
+    paddingVertical: 9,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.body,
+    color: colors.text,
+    padding: 0,
+  },
   errorWrap: { paddingHorizontal: spacing[4], paddingTop: spacing[2] },
-  list: { padding: spacing[4], gap: 8 },
+  list: { padding: spacing[3], gap: 8 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    padding: spacing[4],
+    padding: spacing[3],
     elevation: 1,
     gap: spacing[3],
   },
@@ -146,11 +229,45 @@ const styles = StyleSheet.create({
     backgroundColor: colors.green[100],
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  cardContent: { flex: 1 },
-  cardName: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, color: colors.text },
-  cardMeta: { fontSize: fontSize.caption, color: colors.muted, marginTop: 2 },
-  cardRight: { alignItems: 'flex-end' },
-  cardKg: { fontSize: fontSize.h3, fontWeight: fontWeight.semibold, color: colors.text },
-  cardValue: { fontSize: fontSize.caption, color: colors.muted, marginTop: 2 },
+  cardBody: { flex: 1 },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardName: {
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+    flex: 1,
+  },
+  cardKg: {
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
+  },
+  cardMeta: {
+    fontSize: fontSize.caption,
+    color: colors.muted,
+    marginTop: 2,
+    flex: 1,
+  },
+  cardValue: {
+    fontSize: fontSize.caption,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  valueBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 4,
+  },
+  valueBadgeText: {
+    fontSize: 10,
+    color: colors.green[800],
+    fontWeight: fontWeight.medium,
+  },
 });

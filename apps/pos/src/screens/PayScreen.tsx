@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getErrorMessage } from '../lib/api';
@@ -15,7 +14,7 @@ import { useNetworkStatus } from '../lib/network';
 import type { Buyer, PaymentMethod, Supplier, SupplierPayment, BuyerPayment } from '../types/api';
 import {
   Button, ErrorNote, Field, LoadingView, MethodPicker,
-  OfflineBanner, Screen, SelectSheet, SuccessNote,
+  OfflineBanner, Screen, SelectSheet, TransactionSuccess,
 } from '../components/ui';
 import type { SelectOption } from '../components/ui';
 
@@ -25,8 +24,6 @@ type Step = 'form' | 'success';
 export function PayScreen() {
   const { accessToken, session, hasPermission } = useAuth();
   const { isConnected } = useNetworkStatus();
-  const router = useRouter();
-
   const [mode, setMode] = useState<Mode>('supplier');
   const [step, setStep] = useState<Step>('form');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -181,41 +178,29 @@ export function PayScreen() {
 
   if (step === 'success' && successResult) {
     const allocCount = successResult.allocations?.length ?? 0;
+    const isSupplier = mode === 'supplier';
     return (
       <Screen>
-        <View style={styles.successWrap}>
-          <SuccessNote
-            message={`Payment recorded\n${formatMoney(successResult.amountKes)}`}
-          />
-          {allocCount > 0 && (
-            <View style={styles.allocNote}>
-              <Text style={styles.allocText}>
-                {allocCount} balance allocation{allocCount !== 1 ? 's' : ''} applied automatically
-              </Text>
-            </View>
-          )}
-          {receiptData && (
-            <Button
-              label="View Receipt"
-              variant="secondary"
-              onPress={() =>
-                router.push({
-                  pathname: '/receipt-preview',
-                  params: { receipt: JSON.stringify(receiptData) },
-                })
-              }
-              fullWidth
-              style={{ marginTop: spacing[3] }}
-            />
-          )}
-          <Button
-            label="New payment"
-            variant="secondary"
-            onPress={reset}
-            fullWidth
-            style={{ marginTop: spacing[3] }}
-          />
-        </View>
+        <TransactionSuccess
+          title={isSupplier ? 'Payment Recorded' : 'Payment Received'}
+          receipt={receiptData}
+          rows={[
+            {
+              label: isSupplier ? 'Supplier' : 'Buyer',
+              value: selectedParty?.label ?? '',
+            },
+            {
+              label: isSupplier ? 'Amount Paid' : 'Amount Received',
+              value: formatMoney(successResult.amountKes),
+              accent: 'green',
+            },
+            { label: 'Method', value: formatMethod(method) },
+          ]}
+          isPayment
+          allocCount={allocCount}
+          onNew={reset}
+          newLabel="New payment"
+        />
       </Screen>
     );
   }
@@ -373,12 +358,4 @@ const styles = StyleSheet.create({
   balanceAmber: { color: colors.amber.text },
   balanceGreen: { color: colors.green[800] },
   balanceBlue: { color: colors.blue[700] },
-  successWrap: { flex: 1, justifyContent: 'center' },
-  allocNote: {
-    marginTop: spacing[3],
-    backgroundColor: colors.green[100],
-    borderRadius: radius.sm,
-    padding: spacing[3],
-  },
-  allocText: { fontSize: fontSize.bodySm, color: colors.green[900], textAlign: 'center' },
 });

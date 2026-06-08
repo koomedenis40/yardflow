@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
 import { getErrorMessage, isApiError } from '../lib/api';
@@ -19,7 +18,7 @@ import {
   OfflineBanner,
   Screen,
   SelectSheet,
-  SuccessNote,
+  TransactionSuccess,
 } from '../components/ui';
 import type { SelectOption } from '../components/ui';
 
@@ -28,8 +27,6 @@ type Step = 'form' | 'success';
 export function SellScreen() {
   const { accessToken, session, hasPermission } = useAuth();
   const { isConnected } = useNetworkStatus();
-  const router = useRouter();
-
   const [step, setStep] = useState<Step>('form');
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -44,7 +41,6 @@ export function SellScreen() {
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState('');
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const load = useCallback(async () => {
@@ -134,10 +130,6 @@ export function SellScreen() {
         });
       }
 
-      setSuccessMsg(
-        `${Number(res.weightKg).toFixed(1)} kg · ${formatMoney(res.totalValueKes)}${receivedAmount > 0 ? ` · Received ${formatMoney(receivedAmount)}` : ''}`,
-      );
-
       const now = new Date();
       const receipt: ReceiptData = {
         type: 'sale',
@@ -190,26 +182,26 @@ export function SellScreen() {
   if (loadingData) return <LoadingView message="Loading…" />;
 
   if (step === 'success') {
+    const rows = [
+      { label: 'Buyer', value: buyer?.label ?? '' },
+      { label: 'Category', value: category?.label ?? '' },
+      { label: 'Total', value: formatMoney(total), accent: 'blue' as const },
+      ...(receivedAmount > 0
+        ? [
+            { label: 'Received Now', value: formatMoney(receivedAmount) },
+            { label: 'Method', value: formatMethod(method) },
+          ]
+        : [{ label: 'Payment', value: 'Deferred — use Pay tab' }]),
+    ];
     return (
       <Screen>
-        <View style={styles.successWrap}>
-          <SuccessNote message={`Sale recorded\n${successMsg}`} />
-          {receiptData && (
-            <Button
-              label="View Receipt"
-              variant="secondary"
-              onPress={() =>
-                router.push({
-                  pathname: '/receipt-preview',
-                  params: { receipt: JSON.stringify(receiptData) },
-                })
-              }
-              fullWidth
-              style={{ marginTop: spacing[3] }}
-            />
-          )}
-          <Button label="Record another" variant="secondary" onPress={resetForm} fullWidth style={{ marginTop: spacing[3] }} />
-        </View>
+        <TransactionSuccess
+          title="Sale Recorded"
+          receipt={receiptData}
+          rows={rows}
+          onNew={resetForm}
+          newLabel="Record another sale"
+        />
       </Screen>
     );
   }
@@ -333,5 +325,4 @@ const styles = StyleSheet.create({
   },
   totalLabel: { fontSize: fontSize.body, color: colors.blue[700] },
   totalValue: { fontSize: fontSize.h2, fontWeight: fontWeight.semibold, color: colors.blue[700] },
-  successWrap: { flex: 1, justifyContent: 'center' },
 });

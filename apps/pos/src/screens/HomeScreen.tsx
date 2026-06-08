@@ -13,6 +13,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Scale,
+  UserCircle,
   Wallet,
 } from 'lucide-react-native';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
@@ -117,6 +118,13 @@ export function HomeScreen() {
 
   const yardName = (session?.user.tenantSlug ?? 'yard').replace(/-/g, ' ');
 
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  })();
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {!isConnected && <OfflineBanner />}
@@ -134,11 +142,19 @@ export function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>
-              {session?.user.fullName ? `Hello, ${session.user.fullName.split(' ')[0]}` : 'Good day'}
-            </Text>
-            <Text style={styles.yardName}>{yardName}</Text>
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.greeting}>{greeting}</Text>
+              <Text style={styles.yardName} numberOfLines={1}>{yardName}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/more')}
+              style={styles.profileBtn}
+              hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+              activeOpacity={0.7}
+            >
+              <UserCircle size={28} color={colors.text} strokeWidth={1.5} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -284,10 +300,15 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing[4], paddingBottom: 40 },
 
   header: {
+    marginBottom: spacing[5],
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[5],
+    alignItems: 'center',
+  },
+  profileBtn: {
+    padding: 4,
   },
   greeting: { fontSize: fontSize.caption, color: colors.muted, marginBottom: 2 },
   yardName: {
