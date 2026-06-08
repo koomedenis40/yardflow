@@ -5,10 +5,8 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Search, TrendingUp } from 'lucide-react-native';
 import { colors, fontSize, fontWeight, radius, spacing } from '@yardflow/theme';
 import { useAuth } from '../lib/auth-context';
@@ -19,7 +17,6 @@ import { EmptyState, ErrorNote, LoadingView, OfflineBanner } from '../components
 
 export function StockScreen() {
   const { accessToken } = useAuth();
-  const insets = useSafeAreaInsets();
 
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,18 +61,15 @@ export function StockScreen() {
     : sorted;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <OfflineBanner />
 
-      {/* Sticky header */}
+      {/* Stats + search bar pinned below the native Stack header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.title}>Stock on Hand</Text>
-            <Text style={styles.categoryCount}>
-              {inventory.length} categor{inventory.length !== 1 ? 'ies' : 'y'}
-            </Text>
-          </View>
+          <Text style={styles.categoryCount}>
+            {inventory.length} categor{inventory.length !== 1 ? 'ies' : 'y'}
+          </Text>
           <View style={styles.headerStats}>
             <Text style={styles.totalKg}>{formatWeight(totalKg)}</Text>
             <Text style={styles.totalValue}>
@@ -172,12 +166,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: spacing[3],
-  },
-  title: {
-    fontSize: fontSize.h3,
-    fontWeight: fontWeight.semibold,
-    color: colors.text,
-    marginBottom: 2,
   },
   categoryCount: {
     fontSize: fontSize.caption,

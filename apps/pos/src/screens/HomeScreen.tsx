@@ -129,6 +129,24 @@ export function HomeScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {!isConnected && <OfflineBanner />}
 
+      {/* Sticky header — outside ScrollView so it never scrolls */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.yardName} numberOfLines={1}>{yardName}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/more')}
+            style={styles.profileBtn}
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+            activeOpacity={0.7}
+          >
+            <UserCircle size={28} color={colors.text} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
@@ -140,24 +158,6 @@ export function HomeScreen() {
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View>
-              <Text style={styles.greeting}>{greeting}</Text>
-              <Text style={styles.yardName} numberOfLines={1}>{yardName}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(tabs)/more')}
-              style={styles.profileBtn}
-              hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-              activeOpacity={0.7}
-            >
-              <UserCircle size={28} color={colors.text} strokeWidth={1.5} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {error ? <ErrorNote message={error} /> : null}
 
         {/* Stock hero */}
@@ -300,7 +300,11 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing[4], paddingBottom: 40 },
 
   header: {
-    marginBottom: spacing[5],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.canvas,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   headerContent: {
     flexDirection: 'row',
