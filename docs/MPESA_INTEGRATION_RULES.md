@@ -391,7 +391,88 @@ Use these translations when showing M-Pesa errors to cashiers. Do not expose raw
 
 ---
 
-## 12. Glossary
+## 12. Local Development Callback Strategy
+
+### Why this is necessary
+
+Daraja cannot send callbacks to:
+- `localhost` (not publicly reachable)
+- `127.0.0.1` or any loopback address
+- Private LAN IPs (`192.168.x.x`, `10.x.x.x`)
+- Android emulator IPs (`10.0.2.2`)
+
+All callback endpoints must be publicly reachable over HTTPS with a valid TLS certificate. This is required for sandbox **and** production.
+
+### Recommended tool: Cloudflare Tunnel
+
+Cloudflare Tunnel is the preferred option. It is free, does not require an account for short-lived tunnels, and provides a stable HTTPS URL.
+
+**Setup:**
+
+```bash
+# Install cloudflared (once)
+# Windows: winget install --id Cloudflare.cloudflared
+# Mac: brew install cloudflare/cloudflare/cloudflared
+
+# Start tunnel pointing at the API (run alongside the API server)
+cloudflared tunnel --url http://localhost:3001
+```
+
+Cloudflare will output a public URL such as:
+
+```
+https://yardflow-dev.trycloudflare.com
+```
+
+Set `DARAJA_CALLBACK_BASE_URL` accordingly:
+
+```env
+DARAJA_CALLBACK_BASE_URL=https://yardflow-dev.trycloudflare.com/v1
+```
+
+The full STK callback URL sent to Daraja becomes:
+
+```
+https://yardflow-dev.trycloudflare.com/v1/mpesa/stk-callback
+```
+
+**Characteristics of Cloudflare Tunnel short-lived URLs:**
+- The subdomain changes each time `cloudflared` is restarted.
+- For development, update `DARAJA_CALLBACK_BASE_URL` in `.env` when the tunnel restarts.
+- For CI/staging, use a named tunnel (Cloudflare account required) to get a stable URL.
+
+### Alternative: ngrok
+
+```bash
+ngrok http 3001
+# Set DARAJA_CALLBACK_BASE_URL=https://abc123.ngrok.io/v1
+```
+
+ngrok free tier changes the subdomain on each restart. ngrok is acceptable for short testing sessions but Cloudflare Tunnel is preferred.
+
+### Alternative: Public dev server
+
+For persistent sandbox testing, deploy the API to a staging environment (Railway, Render, Fly.io). Use a fixed `DARAJA_CALLBACK_BASE_URL` pointing to staging. This is the most reliable approach for team development.
+
+### What NEVER to do
+
+- Do not expose a local port directly to the internet without TLS.
+- Do not use an HTTP (not HTTPS) callback URL — Daraja rejects non-HTTPS.
+- Do not share your tunnel URL publicly — anyone who knows it can send fake callbacks to your local server.
+
+### Callback endpoint public requirements checklist
+
+Before running the first sandbox STK Push test, verify:
+
+- [ ] `DARAJA_CALLBACK_BASE_URL` is set in `.env`
+- [ ] The URL is HTTPS and publicly reachable (test with `curl <URL>/health`)
+- [ ] The tunnel/server is running
+- [ ] The callback endpoint returns HTTP 200 for a test POST
+- [ ] The raw payload write to `mpesa_callback_logs` works (test with a mock payload)
+
+---
+
+## 13. Glossary
 
 | Term | Definition |
 |------|------------|
