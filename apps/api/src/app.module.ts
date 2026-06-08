@@ -20,6 +20,7 @@ import { CorrectionsModule } from './corrections/corrections.module';
 import { SupplierPaymentsModule } from './supplier-payments/supplier-payments.module';
 import { BuyerPaymentsModule } from './buyer-payments/buyer-payments.module';
 import { BalancesModule } from './balances/balances.module';
+import { MpesaModule } from './mpesa/mpesa.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { BalancesModule } from './balances/balances.module';
     SupplierPaymentsModule,
     BuyerPaymentsModule,
     BalancesModule,
+    MpesaModule,
   ],
   providers: [
     {
