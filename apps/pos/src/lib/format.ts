@@ -12,6 +12,17 @@ export function formatWeight(value: string | number): string {
   return `${n.toLocaleString('en-KE', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} kg`;
 }
 
+export function formatDateTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' });
+    const time = d.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+    return `${date} ${time}`;
+  } catch {
+    return iso;
+  }
+}
+
 export function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString('en-KE', {
@@ -38,7 +49,8 @@ export function formatDayTime(iso: string): string {
   }
 }
 
-export function formatMethod(method: string): string {
+export function formatMethod(method: string | null | undefined): string {
+  if (!method) return '—';
   switch (method) {
     case 'cash': return 'Cash';
     case 'bank': return 'Bank';
